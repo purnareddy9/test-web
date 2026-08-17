@@ -1,0 +1,104 @@
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, Download } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const NAV_LINKS = [
+  { href: '/#about',    label: 'About' },
+  { href: '/#skills',   label: 'Skills' },
+  { href: '/#workflow', label: 'DevOps Workflow' },
+  { href: '/#experience', label: 'Experience' },
+  { href: '/#projects', label: 'Projects' },
+  { href: '/#certifications', label: 'Certifications' },
+  { href: '/#contact',  label: 'Contact' },
+];
+
+function scrollTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+}
+
+export default function Navbar({ resumeUrl }: { resumeUrl?: string }) {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
+
+  const handleNav = useCallback((href: string) => {
+    setOpen(false);
+    const id = href.replace('/#', '');
+    if (pathname === '/') { scrollTo(id); }
+  }, [pathname]);
+
+  return (
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-white/[0.06]' : 'bg-transparent'}`}>
+      <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between" aria-label="Main navigation">
+        {/* Logo */}
+        <Link to="/" className="font-display font-bold text-white text-lg tracking-tight hover:text-cyan-400 transition-colors">
+          alex<span className="text-cyan-400">.</span>
+        </Link>
+
+        {/* Desktop links */}
+        <ul className="hidden lg:flex items-center gap-1" role="list">
+          {NAV_LINKS.map(({ href, label }) => (
+            <li key={href}>
+              <button onClick={() => handleNav(href)}
+                className="px-3 py-2 text-sm text-white/55 hover:text-white transition-colors rounded-md hover:bg-white/[0.04] font-medium">
+                {label}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {/* Resume + mobile toggle */}
+        <div className="flex items-center gap-3">
+          {resumeUrl ? (
+            <a href={resumeUrl} download target="_blank" rel="noopener noreferrer"
+              className="hidden sm:inline-flex btn-outline text-xs py-2 px-4 gap-1.5">
+              <Download className="w-3.5 h-3.5" /> Resume
+            </a>
+          ) : (
+            <span className="hidden sm:inline-flex btn-outline text-xs py-2 px-4 gap-1.5 opacity-40 cursor-default select-none">
+              <Download className="w-3.5 h-3.5" /> Resume
+            </span>
+          )}
+          <button onClick={() => setOpen(o => !o)} className="lg:hidden p-2 text-white/60 hover:text-white transition-colors" aria-label="Toggle menu" aria-expanded={open}>
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+            className="lg:hidden bg-[#0a0a0a]/98 backdrop-blur-sm border-b border-white/[0.06] px-6 pb-5">
+            <ul className="flex flex-col gap-1 pt-3" role="list">
+              {NAV_LINKS.map(({ href, label }) => (
+                <li key={href}>
+                  <button onClick={() => handleNav(href)}
+                    className="w-full text-left px-3 py-2.5 text-sm text-white/60 hover:text-white transition-colors rounded-md hover:bg-white/[0.04]">
+                    {label}
+                  </button>
+                </li>
+              ))}
+              {resumeUrl && (
+                <li className="mt-2">
+                  <a href={resumeUrl} download target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-cyan-400">
+                    <Download className="w-4 h-4" /> Download Resume
+                  </a>
+                </li>
+              )}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+}
