@@ -74,21 +74,34 @@ export function SectionHeader({
 
 // ── Animated counter ──────────────────────────────────────
 export function Counter({ value, suffix = '' }: { value: number; suffix?: string }) {
-  const ref    = useRef<HTMLSpanElement>(null);
+  const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
-  const started = useRef(false);
 
   useEffect(() => {
-    if (!inView || started.current || !ref.current) return;
-    started.current = true;
-    let c = 0;
-    const step = value / 55;
-    const t = setInterval(() => {
-      c = Math.min(c + step, value);
-      if (ref.current) ref.current.textContent = Math.round(c) + suffix;
-      if (c >= value) clearInterval(t);
-    }, 18);
-    return () => clearInterval(t);
+    if (!inView || !ref.current) return;
+
+    const duration = 1000;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      if (!ref.current) return;
+
+      const progress = Math.min(
+        (currentTime - startTime) / duration,
+        1
+      );
+
+      const currentValue = Math.round(value * progress);
+      ref.current.textContent = `${currentValue}${suffix}`;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        ref.current.textContent = `${value}${suffix}`;
+      }
+    };
+
+    requestAnimationFrame(animate);
   }, [inView, value, suffix]);
 
   return <span ref={ref}>0{suffix}</span>;
