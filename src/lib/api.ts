@@ -10,8 +10,93 @@ const cfg = () => supabaseConfigured;
 // ── Profile ──────────────────────────────────────────────
 export async function getProfile(): Promise<Profile> {
   if (!cfg()) return fallbackProfile;
-  const { data } = await supabase.from('profiles').select('*').limit(1).single();
-  return (data as Profile) ?? fallbackProfile;
+
+  const [
+    { data: profileData },
+    { data: projectsData },
+    { data: experienceData },
+    { data: certificationsData },
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').limit(1).single(),
+    supabase.from('projects').select('id'),
+    supabase.from('experience').select('start_date, end_date, current'),
+    supabase.from('certifications').select('id'),
+  ]);
+
+  if (!profileData) return fallbackProfile;
+
+  // Calculate total experience from experience records.
+  // Overlapping employment periods are counted only once.
+  const periods = (experienceData ?? [])
+    .map(item => {
+      const start = new Date(item.start_date);
+      const end = item.current || !item.end_date
+        ? new Date()
+        : new Date(item.end_date);
+
+      return {
+        start: start.getTime(),
+        end: end.getTime(),
+      };
+    })
+    .filter(period => !isNaN(period.start) && period.end > period.start)
+    .sort((a, b) => a.start - b.start);
+
+  let totalStart = 0;
+  let totalEnd = 0;
+
+  for (const period of periods) {
+    if (totalStart === 0) {
+      totalStart = period.start;
+      totalEnd = period.end;
+      continue;
+    }
+
+    if (period.start <= totalEnd) {
+      totalEnd = Math.max(totalEnd, period.end);
+    } else {
+      totalStart += period.start;
+      totalEnd += period.end;
+    }
+  }
+
+  let totalMilliseconds = 0;
+
+  if (periods.length > 0) {
+    let currentStart = periods[0].start;
+    let currentEnd = periods[0].end;
+
+    for (let i = 1; i < periods.length; i++) {
+      const period = periods[i];
+
+      if (period.start <= currentEnd) {
+        currentEnd = Math.max(currentEnd, period.end);
+      } else {
+        totalMilliseconds += currentEnd - currentStart;
+        currentStart = period.start;
+        currentEnd = period.end;
+      }
+    }
+
+    totalMilliseconds += currentEnd - currentStart;
+  }
+
+  const yearsExperience = Math.floor(
+    totalMilliseconds / (1000 * 60 * 60 * 24 * 365.25)
+  );
+
+  return {
+    ...(profileData as Profile),
+
+    // Automatically calculated from database
+    years_experience: yearsExperience,
+    projects_count: projectsData?.length ?? 0,
+    certifications_count: certificationsData?.length ?? 0,
+
+    // Still manually controlled from profiles table
+    deployments_count: profileData.deployments_count,
+    uptime_target: profileData.uptime_target,
+  };
 }
 
 // ── Projects ─────────────────────────────────────────────
