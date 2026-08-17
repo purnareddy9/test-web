@@ -9,34 +9,27 @@ const cfg = () => !!(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-type ProfileFieldProps = {
-  k: keyof Profile;
-  l: string;
-  type?: string;
-  form: Partial<Profile>;
-  change: (k: keyof Profile, v: string | number) => void;
-};
-
 function ProfileField({
   k,
   l,
   type = 'text',
   form,
   change,
-}: ProfileFieldProps) {
-  const value = (form as Record<string, unknown>)[k];
-
+}: {
+  k: keyof Profile;
+  l: string;
+  type?: string;
+  form: Partial<Profile>;
+  change: (k: keyof Profile, v: string | number) => void;
+}) {
   return (
     <label className="block">
       {l}
       <input
         type={type}
-        value={value == null ? '' : String(value)}
+        value={(form as Record<string, unknown>)[k] as string ?? ''}
         onChange={e =>
-          change(
-            k,
-            type === 'number' ? Number(e.target.value) : e.target.value
-          )
+          change(k, type === 'number' ? +e.target.value : e.target.value)
         }
         className="form-input"
       />
@@ -47,7 +40,7 @@ function ProfileField({
 export default function AdminProfile() {
   const [form, setForm] = useState<Partial<Profile>>({});
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ type: 'ok'|'err'; text: string } | null>(null);
 
   useEffect(() => {
     getProfile().then(setForm);
@@ -87,6 +80,28 @@ export default function AdminProfile() {
     }
   }
 
+  const F = ({
+    k,
+    l,
+    type = 'text',
+  }: {
+    k: keyof Profile;
+    l: string;
+    type?: string;
+  }) => (
+    <label className="block">
+      {l}
+      <input
+        type={type}
+        value={(form as Record<string, unknown>)[k] as string ?? ''}
+        onChange={e =>
+          change(k, type === 'number' ? +e.target.value : e.target.value)
+        }
+        className="form-input"
+      />
+    </label>
+  );
+
   return (
     <div>
       <h1 className="font-display font-semibold text-white text-xl mb-6">
@@ -95,114 +110,25 @@ export default function AdminProfile() {
 
       <form onSubmit={save} className="space-y-6">
         <div className="grid sm:grid-cols-2 gap-4">
-          <ProfileField
-            k="name"
-            l="Name"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="headline"
-            l="Headline"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="email"
-            l="Email"
-            type="email"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="phone"
-            l="Phone"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="location"
-            l="Location"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="availability"
-            l="Availability"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="github_url"
-            l="GitHub URL"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="linkedin_url"
-            l="LinkedIn URL"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="website"
-            l="Website"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="years_experience"
-            l="Years Experience"
-            type="number"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="projects_count"
-            l="Projects Count"
-            type="number"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="deployments_count"
-            l="Deployments Count"
-            type="number"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="certifications_count"
-            l="Certifications Count"
-            type="number"
-            form={form}
-            change={change}
-          />
-
-          <ProfileField
-            k="uptime_target"
-            l="Uptime Target"
-            form={form}
-            change={change}
-          />
+          <F k="name" l="Name" />
+          <F k="headline" l="Headline" />
+          <F k="email" l="Email" type="email" />
+          <F k="phone" l="Phone" />
+          <F k="location" l="Location" />
+          <F k="availability" l="Availability" />
+          <F k="github_url" l="GitHub URL" />
+          <F k="linkedin_url" l="LinkedIn URL" />
+          <F k="website" l="Website" />
+          <F k="years_experience" l="Years Experience" type="number" />
+          <F k="projects_count" l="Projects Count" type="number" />
+          <F k="deployments_count" l="Deployments Count" type="number" />
+          <F k="certifications_count" l="Certifications Count" type="number" />
+          <F k="uptime_target" l="Uptime Target" />
         </div>
 
         <div>
           <label className="block">
             Bio (use \n for new paragraph)
-
             <textarea
               rows={4}
               value={form.bio ?? ''}
