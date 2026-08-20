@@ -20,7 +20,7 @@ const STEP_MS = 800; // ms per step
 
 function StepIcon({ status }: { status: StepStatus }) {
   if (status === 'success') return <CheckCircle className="w-4 h-4 text-green-400" />;
-  if (status === 'running')  return <Loader className="w-4 h-4 text-cyan-400" style={{ animation: 'spin 1s linear infinite' }} />;
+  if (status === 'running')  return <Loader className="w-4 h-4 text-cyan-400 animate-spin" />;
   return <Circle className="w-4 h-4 text-white/15" />;
 }
 
