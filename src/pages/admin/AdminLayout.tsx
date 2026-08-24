@@ -5,7 +5,7 @@ import {
   LayoutDashboard, User, FolderKanban, Wrench, Briefcase,
   Award, MessageSquare, FileText, Settings, LogOut, Menu, X, Terminal,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase, isLocalDemo } from '../../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
 const NAV = [
@@ -26,6 +26,12 @@ export default function AdminLayout() {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    if (isLocalDemo) {
+      const isLocalAuth = localStorage.getItem('local_demo_auth') === 'true';
+      setSession(isLocalAuth ? ({ user: { email: 'admin@example.com' } } as unknown as Session) : null);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => setSession(s));
     return () => subscription.unsubscribe();
@@ -39,6 +45,11 @@ export default function AdminLayout() {
   if (!session) return <Navigate to="/login" replace />;
 
   async function logout() {
+    if (isLocalDemo) {
+      localStorage.removeItem('local_demo_auth');
+      setSession(null);
+      return;
+    }
     await supabase.auth.signOut();
   }
 
