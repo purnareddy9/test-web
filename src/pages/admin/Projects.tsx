@@ -51,15 +51,6 @@ export default function AdminProjects() {
     await supabase.from('projects').update({ featured: !p.featured }).eq('id', p.id); await load();
   }
 
-  const F = ({ k, l, type = 'text', required = false }: { k: keyof Project; l: string; type?: string; required?: boolean }) => (
-    <div>
-      <label className="block text-xs text-white/40 mb-1.5">{l}{required && <span className="text-red-400"> *</span>}</label>
-      <input type={type} value={(ed as Record<string, unknown>)[k] as string ?? ''}
-        onChange={e => setEd(v => ({ ...v, [k]: e.target.value }))}
-        className="form-input" />
-    </div>
-  );
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -100,16 +91,46 @@ export default function AdminProjects() {
               className="card w-full max-w-lg my-8 p-6">
               <h2 className="font-display font-bold text-white text-lg mb-5">{modal === 'add' ? 'Add' : 'Edit'} Project</h2>
               <div className="space-y-3.5">
-                <F k="title" l="Title" required />
-                <F k="slug" l="Slug (URL)" />
-                <F k="short_description" l="Short Description" />
+                {[
+                  { k: 'title', l: 'Title', r: true },
+                  { k: 'slug', l: 'Slug (URL)' },
+                  { k: 'short_description', l: 'Short Description' },
+                ].map(({ k, l, r }) => (
+                  <div key={k}>
+                    <label className="block text-xs text-white/40 mb-1.5">{l}{r && <span className="text-red-400"> *</span>}</label>
+                    <input
+                      value={(ed as Record<string, unknown>)[k] as string ?? ''}
+                      onChange={e => setEd(v => ({ ...v, [k]: e.target.value }))}
+                      className="form-input"
+                    />
+                  </div>
+                ))}
                 <div>
                   <label className="block text-xs text-white/40 mb-1.5">Technologies (comma-separated)</label>
                   <input type="text" value={techStr} onChange={e => setTechStr(e.target.value)} className="form-input" placeholder="Docker, Kubernetes, Terraform" />
                 </div>
-                <F k="github_url" l="GitHub URL" />
-                <F k="live_url" l="Live URL" />
-                <F k="display_order" l="Display Order" type="number" />
+                {[
+                  { k: 'github_url', l: 'GitHub URL' },
+                  { k: 'live_url', l: 'Live URL' },
+                ].map(({ k, l }) => (
+                  <div key={k}>
+                    <label className="block text-xs text-white/40 mb-1.5">{l}</label>
+                    <input
+                      value={(ed as Record<string, unknown>)[k] as string ?? ''}
+                      onChange={e => setEd(v => ({ ...v, [k]: e.target.value }))}
+                      className="form-input"
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Display Order</label>
+                  <input
+                    type="number"
+                    value={ed.display_order ?? 0}
+                    onChange={e => setEd(v => ({ ...v, display_order: +e.target.value }))}
+                    className="form-input"
+                  />
+                </div>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="feat" checked={!!ed.featured} onChange={e => setEd(v => ({ ...v, featured: e.target.checked }))} className="accent-cyan-500 w-4 h-4" />
                   <label htmlFor="feat" className="text-sm text-white/55">Featured</label>

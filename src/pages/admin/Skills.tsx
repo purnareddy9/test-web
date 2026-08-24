@@ -86,7 +86,7 @@ export default function AdminSkills() {
               className="card w-full max-w-sm my-8 p-6">
               <h2 className="font-display font-bold text-white text-lg mb-5">{modal === 'add' ? 'Add' : 'Edit'} Skill</h2>
               <div className="space-y-3.5">
-                <div><label className="block text-xs text-white/40 mb-1.5">Name *</label><input value={ed.name ?? ''} onChange={e => setEd(v => ({ ...v, name: e.target.value }))} className="form-input" /></div>
+                <div><label className="block text-xs text-white/40 mb-1.5">Name<span className="text-red-400"> *</span></label><input value={ed.name ?? ''} onChange={e => setEd(v => ({ ...v, name: e.target.value }))} className="form-input" /></div>
                 <div><label className="block text-xs text-white/40 mb-1.5">Category</label>
                   <select value={ed.category ?? 'cloud'} onChange={e => setEd(v => ({ ...v, category: e.target.value as Skill['category'] }))} className="form-input">
                     {CATS.map(c => <option key={c} value={c}>{c}</option>)}

@@ -26,35 +26,47 @@ export default function AdminProfile() {
     finally { setSaving(false); }
   }
 
-  const F = ({ k, l, type = 'text' }: { k: keyof Profile; l: string; type?: string }) => (
-    <div>
-      <label className="block text-xs text-white/40 mb-1.5">{l}</label>
-      <input type={type} value={(form as Record<string, unknown>)[k] as string ?? ''}
-        onChange={e => change(k, type === 'number' ? +e.target.value : e.target.value)}
-        className="form-input" />
-    </div>
-  );
-
   return (
     <div>
       <h1 className="text-2xl font-display font-bold text-white mb-6">Profile</h1>
       <form onSubmit={save} className="card p-6 max-w-2xl space-y-4">
         <div className="grid sm:grid-cols-2 gap-4">
-          <F k="name" l="Full Name" />
-          <F k="headline" l="Headline" />
-          <F k="email" l="Email" type="email" />
-          <F k="location" l="Location" />
-          <F k="github_url" l="GitHub URL" />
-          <F k="linkedin_url" l="LinkedIn URL" />
-          <F k="years_experience" l="Years Experience" type="number" />
-          <F k="projects_count" l="Projects Count" type="number" />
-          <F k="deployments_count" l="Deployments Count" type="number" />
-          <F k="certifications_count" l="Certifications Count" type="number" />
+          {[
+            { k: 'name', l: 'Full Name' },
+            { k: 'headline', l: 'Headline' },
+            { k: 'email', l: 'Email', type: 'email' },
+            { k: 'location', l: 'Location' },
+            { k: 'github_url', l: 'GitHub URL' },
+            { k: 'linkedin_url', l: 'LinkedIn URL' },
+            { k: 'years_experience', l: 'Years Experience', type: 'number' },
+            { k: 'projects_count', l: 'Projects Count', type: 'number' },
+            { k: 'deployments_count', l: 'Deployments Count', type: 'number' },
+            { k: 'certifications_count', l: 'Certifications Count', type: 'number' },
+          ].map(({ k, l, type = 'text' }) => (
+            <div key={k}>
+              <label className="block text-xs text-white/40 mb-1.5">{l}</label>
+              <input
+                type={type}
+                value={(form as Record<string, unknown>)[k] as string ?? ''}
+                onChange={e => change(k as keyof Profile, type === 'number' ? +e.target.value : e.target.value)}
+                className="form-input"
+              />
+            </div>
+          ))}
         </div>
-        <div><label className="block text-xs text-white/40 mb-1.5">Bio (use \\n for new paragraph)</label>
+        <div>
+          <label className="block text-xs text-white/40 mb-1.5">Bio (use \n for new paragraph)</label>
           <textarea rows={4} value={form.bio ?? ''} onChange={e => change('bio', e.target.value)} className="form-input resize-none" />
         </div>
-        <F k="availability" l="Availability" />
+        <div>
+          <label className="block text-xs text-white/40 mb-1.5">Availability</label>
+          <input
+            type="text"
+            value={form.availability ?? ''}
+            onChange={e => change('availability', e.target.value)}
+            className="form-input"
+          />
+        </div>
         {msg && (
           <p className={`flex items-center gap-1.5 text-xs ${msg.type === 'ok' ? 'text-green-400' : 'text-red-400'}`}>
             {msg.type === 'ok' ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
