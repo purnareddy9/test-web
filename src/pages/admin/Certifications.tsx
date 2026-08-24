@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { getCertifications } from '../../lib/api';
 import type { Certification } from '../../types';
 import { formatDate } from '../../lib/utils';
+import DatePicker from '../../components/ui/DatePicker';
 
 const cfg = () => !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 const EMPTY: Partial<Certification> = { name:'', issuer:'', credential_id:'', issue_date:'', expiry_date:'', credential_url:'', display_order:0 };
@@ -69,9 +70,63 @@ export default function AdminCertifications() {
               className="card w-full max-w-md my-8 p-6">
               <h2 className="font-display font-bold text-white text-lg mb-5">{modal === 'add' ? 'Add' : 'Edit'} Certification</h2>
               <div className="space-y-3.5">
-                {[{k:'name',l:'Name',r:true},{k:'issuer',l:'Issuer',r:true},{k:'credential_id',l:'Credential ID'},{k:'issue_date',l:'Issue Date (YYYY-MM-DD)'},{k:'expiry_date',l:'Expiry Date'},{k:'credential_url',l:'Credential URL'}].map(({k,l,r}) => (
-                  <div key={k}><label className="block text-xs text-white/40 mb-1.5">{l}{r&&<span className="text-red-400"> *</span>}</label><input value={(ed as Record<string,unknown>)[k] as string ?? ''} onChange={e => setEd(v => ({ ...v, [k]: e.target.value }))} className="form-input" /></div>
-                ))}
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Certification Name<span className="text-red-400"> *</span></label>
+                  <input
+                    value={ed.name ?? ''}
+                    onChange={e => setEd(v => ({ ...v, name: e.target.value }))}
+                    placeholder="e.g. AWS Certified Solutions Architect"
+                    className="form-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Issuing Organization<span className="text-red-400"> *</span></label>
+                  <input
+                    value={ed.issuer ?? ''}
+                    onChange={e => setEd(v => ({ ...v, issuer: e.target.value }))}
+                    placeholder="e.g. Amazon Web Services (AWS)"
+                    className="form-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Credential ID</label>
+                  <input
+                    value={ed.credential_id ?? ''}
+                    onChange={e => setEd(v => ({ ...v, credential_id: e.target.value }))}
+                    placeholder="e.g. AWS-12345678"
+                    className="form-input"
+                  />
+                </div>
+
+                {/* Modern Date Pickers */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <DatePicker
+                    label="Issue Date"
+                    value={ed.issue_date ?? ''}
+                    onChange={val => setEd(v => ({ ...v, issue_date: val }))}
+                    placeholder="Pick issue date"
+                  />
+
+                  <DatePicker
+                    label="Expiry Date"
+                    value={ed.expiry_date ?? ''}
+                    onChange={val => setEd(v => ({ ...v, expiry_date: val }))}
+                    placeholder="No expiry (optional)"
+                    helperText="Leave empty if lifetime"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Credential URL</label>
+                  <input
+                    value={ed.credential_url ?? ''}
+                    onChange={e => setEd(v => ({ ...v, credential_url: e.target.value }))}
+                    placeholder="https://www.credly.com/badges/..."
+                    className="form-input"
+                  />
+                </div>
               </div>
               {err && <p className="text-red-400 text-xs mt-3 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{err}</p>}
               <div className="flex gap-3 mt-5">

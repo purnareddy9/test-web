@@ -5,9 +5,10 @@ import { supabase } from '../../lib/supabase';
 import { getExperience } from '../../lib/api';
 import type { Experience } from '../../types';
 import { getDateRange } from '../../lib/utils';
+import DatePicker from '../../components/ui/DatePicker';
 
 const cfg = () => !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
-const EMPTY: Partial<Experience> = { company:'', role:'', location:'', start_date:'', current:false, description:'', achievements:[], technologies:[], display_order:0 };
+const EMPTY: Partial<Experience> = { company:'', role:'', location:'', start_date:'', end_date:'', current:false, description:'', achievements:[], technologies:[], display_order:0 };
 
 export default function AdminExperience() {
   const [items, setItems] = useState<Experience[]>([]);
@@ -27,12 +28,17 @@ export default function AdminExperience() {
   async function save() {
     if (!ed.company?.trim() || !ed.role?.trim()) { setErr('Company and role required.'); return; }
     setSaving(true); setErr('');
-    const payload = { ...ed, achievements: achStr.split('\n').map(a => a.trim()).filter(Boolean), technologies: techStr.split(',').map(t => t.trim()).filter(Boolean) };
+    const payload = {
+      ...ed,
+      end_date: ed.current ? null : ed.end_date || null,
+      achievements: achStr.split('\n').map(a => a.trim()).filter(Boolean),
+      technologies: techStr.split(',').map(t => t.trim()).filter(Boolean),
+    };
     try {
       if (!cfg()) {
         setItems(prev => modal === 'add'
-          ? [{ ...payload, id: Date.now().toString(), created_at: '' } as Experience, ...prev]
-          : prev.map(x => x.id === ed.id ? payload as Experience : x));
+          ? [{ ...payload, id: Date.now().toString(), created_at: '' } as unknown as Experience, ...prev]
+          : prev.map(x => x.id === ed.id ? payload as unknown as Experience : x));
         close(); return;
       }
       if (modal === 'add') { const { error } = await supabase.from('experience').insert([payload]); if (error) throw error; }
@@ -89,14 +95,87 @@ export default function AdminExperience() {
               className="card w-full max-w-lg my-8 p-6">
               <h2 className="font-display font-bold text-white text-lg mb-5">{modal === 'add' ? 'Add' : 'Edit'} Experience</h2>
               <div className="space-y-3.5">
-                {[{k:'company',l:'Company',r:true},{k:'role',l:'Role',r:true},{k:'location',l:'Location'},{k:'start_date',l:'Start Date (YYYY-MM-DD)'},{k:'end_date',l:'End Date (leave blank if current)'}].map(({k,l,r}) => (
-                  <div key={k}><label className="block text-xs text-white/40 mb-1.5">{l}{r&&<span className="text-red-400"> *</span>}</label><input value={(ed as Record<string,unknown>)[k] as string ?? ''} onChange={e => setEd(v => ({ ...v, [k]: e.target.value }))} className="form-input" /></div>
-                ))}
-                <div><label className="block text-xs text-white/40 mb-1.5">Description</label><textarea rows={2} value={ed.description ?? ''} onChange={e => setEd(v => ({ ...v, description: e.target.value }))} className="form-input resize-none" /></div>
-                <div><label className="block text-xs text-white/40 mb-1.5">Achievements (one per line)</label><textarea rows={4} value={achStr} onChange={e => setAchStr(e.target.value)} className="form-input resize-none" /></div>
-                <div><label className="block text-xs text-white/40 mb-1.5">Technologies (comma-separated)</label><input value={techStr} onChange={e => setTechStr(e.target.value)} className="form-input" /></div>
-                <div className="flex items-center gap-2"><input type="checkbox" id="cur" checked={!!ed.current} onChange={e => setEd(v => ({ ...v, current: e.target.checked }))} className="accent-cyan-500 w-4 h-4" /><label htmlFor="cur" className="text-sm text-white/55">Current position</label></div>
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Company<span className="text-red-400"> *</span></label>
+                  <input
+                    value={ed.company ?? ''}
+                    onChange={e => setEd(v => ({ ...v, company: e.target.value }))}
+                    placeholder="e.g. Acme Corp"
+                    className="form-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Role<span className="text-red-400"> *</span></label>
+                  <input
+                    value={ed.role ?? ''}
+                    onChange={e => setEd(v => ({ ...v, role: e.target.value }))}
+                    placeholder="e.g. Senior DevOps Engineer"
+                    className="form-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Location</label>
+                  <input
+                    value={ed.location ?? ''}
+                    onChange={e => setEd(v => ({ ...v, location: e.target.value }))}
+                    placeholder="e.g. San Francisco, CA (or Remote)"
+                    className="form-input"
+                  />
+                </div>
+
+                {/* Modern Date Pickers */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <DatePicker
+                    label="Start Date"
+                    value={ed.start_date ?? ''}
+                    onChange={val => setEd(v => ({ ...v, start_date: val }))}
+                    placeholder="Pick start date"
+                  />
+
+                  <DatePicker
+                    label="End Date"
+                    value={ed.end_date ?? ''}
+                    disabled={!!ed.current}
+                    onChange={val => setEd(v => ({ ...v, end_date: val }))}
+                    placeholder={ed.current ? 'Present' : 'Pick end date'}
+                    helperText={ed.current ? 'Disabled because current position is checked' : undefined}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="cur"
+                    checked={!!ed.current}
+                    onChange={e => {
+                      const isCur = e.target.checked;
+                      setEd(v => ({ ...v, current: isCur, end_date: isCur ? '' : v.end_date }));
+                    }}
+                    className="accent-cyan-500 w-4 h-4 cursor-pointer"
+                  />
+                  <label htmlFor="cur" className="text-sm text-white/70 cursor-pointer select-none">
+                    Currently working in this position
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Description</label>
+                  <textarea rows={2} value={ed.description ?? ''} onChange={e => setEd(v => ({ ...v, description: e.target.value }))} className="form-input resize-none" />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Achievements (one per line)</label>
+                  <textarea rows={4} value={achStr} onChange={e => setAchStr(e.target.value)} className="form-input resize-none" />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1.5">Technologies (comma-separated)</label>
+                  <input value={techStr} onChange={e => setTechStr(e.target.value)} placeholder="Kubernetes, Terraform, AWS, Docker" className="form-input" />
+                </div>
               </div>
+
               {err && <p className="text-red-400 text-xs mt-3 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{err}</p>}
               <div className="flex gap-3 mt-5">
                 <button onClick={close} className="btn-outline flex-1 justify-center text-sm">Cancel</button>
