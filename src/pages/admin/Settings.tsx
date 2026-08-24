@@ -123,6 +123,8 @@ export default function AdminSettings() {
   const [sectionSearch, setSectionSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [saveBanner, setSaveBanner] = useState(false);
+  const [draggedId, setDraggedId] = useState<SectionId | null>(null);
+  const [dragOverId, setDragOverId] = useState<SectionId | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -257,6 +259,59 @@ export default function AdminSettings() {
     setSections(reordered);
     saveSectionSettings(reordered);
     triggerSaveToast();
+  }
+
+  function handleDragStart(id: SectionId) {
+    setDraggedId(id);
+  }
+
+  function handleDragOver(e: React.DragEvent, id: SectionId) {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+    if (dragOverId !== id) {
+      setDragOverId(id);
+    }
+  }
+
+  function handleDragLeave(id: SectionId) {
+    if (dragOverId === id) {
+      setDragOverId(null);
+    }
+  }
+
+  function handleDrop(targetId: SectionId) {
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+
+    const fromIndex = sections.findIndex(s => s.id === draggedId);
+    const toIndex = sections.findIndex(s => s.id === targetId);
+
+    if (fromIndex === -1 || toIndex === -1) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+
+    const copy = [...sections];
+    const [moved] = copy.splice(fromIndex, 1);
+    copy.splice(toIndex, 0, moved);
+
+    const reordered = copy.map((s, idx) => ({ ...s, order: idx }));
+    setSections(reordered);
+    saveSectionSettings(reordered);
+    triggerSaveToast();
+    setDraggedId(null);
+    setDragOverId(null);
+  }
+
+  function handleDragEnd() {
+    setDraggedId(null);
+    setDragOverId(null);
   }
 
   function setAllSections(enabled: boolean) {
@@ -756,19 +811,36 @@ export default function AdminSettings() {
               const fullIndex = sections.findIndex(s => s.id === section.id);
               const isFirst = fullIndex === 0;
               const isLast = fullIndex === sections.length - 1;
+              const isDragging = draggedId === section.id;
+              const isDragOver = dragOverId === section.id;
 
               return (
                 <div
                   key={section.id}
-                  className={`card p-4 sm:p-5 flex items-start sm:items-center gap-4 transition-all ${
-                    section.enabled
+                  draggable
+                  onDragStart={() => handleDragStart(section.id)}
+                  onDragOver={(e) => handleDragOver(e, section.id)}
+                  onDragLeave={() => handleDragLeave(section.id)}
+                  onDrop={() => handleDrop(section.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`card p-4 sm:p-5 flex items-start sm:items-center gap-4 transition-all duration-150 ${
+                    isDragging
+                      ? 'opacity-35 scale-[0.99] border-cyan-400/60 bg-cyan-500/10'
+                      : isDragOver
+                      ? 'border-cyan-400 bg-cyan-500/[0.08] ring-2 ring-cyan-400/40 translate-y-0.5'
+                      : section.enabled
                       ? 'border-white/10 hover:border-cyan-500/30 bg-white/[0.02]'
                       : 'opacity-55 border-white/[0.04] bg-transparent'
                   }`}
                 >
                   {/* Order Controls */}
                   <div className="flex flex-col sm:flex-row items-center gap-2 text-white/30">
-                    <GripVertical className="w-3.5 h-3.5 text-white/20 hidden sm:block cursor-grab" />
+                    <div
+                      className="p-1 -m-1 cursor-grab active:cursor-grabbing text-white/25 hover:text-cyan-400 transition-colors hidden sm:flex items-center justify-center"
+                      title="Click & drag to reorder section"
+                    >
+                      <GripVertical className="w-4 h-4" />
+                    </div>
                     <span className="font-mono text-xs text-white/35 w-6 text-center">
                       #{fullIndex + 1}
                     </span>
