@@ -5,7 +5,7 @@ import type {
 
 export const fallbackProfile: Profile = {
   id: '1',
-  name: 'Alex Chen',
+  name: 'Poorna',
   headline: 'Senior DevOps & Cloud Engineer',
   bio: "I'm a senior DevOps engineer with 5+ years of experience designing and operating production infrastructure. I specialise in Kubernetes platforms, CI/CD automation, and cloud infrastructure with Terraform.\n\nI believe infrastructure should be reliable by design, automated by default, and observable at every layer. I work closely with product teams to reduce friction in the delivery process — so they can ship fast without sacrificing stability.",
   location: 'Seattle, WA',
