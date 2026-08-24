@@ -40,10 +40,62 @@ export default function AdminLayout() {
           return;
         }
 
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        // 1. Check local session
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          if (mounted) setSession(null);
+          return;
+        }
+
+        // 2. Validate token with Supabase server (fails if refresh token revoked)
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData.user) {
+          console.warn('Session revoked on server backend:', userError);
+          await supabase.auth.signOut().catch(() => {});
+          localStorage.removeItem('local_demo_auth');
+          if (mounted) setSession(null);
+          return;
+        }
+
+        // 3. Cross-device revocation verification via site_settings
+        const { data: settingsData } = await supabase
+          .from('site_settings')
+          .select('last_revoked_at, active_session_id')
+          .eq('id', 'default')
+          .maybeSingle();
+
+        if (settingsData?.last_revoked_at) {
+          const revokedTime = new Date(settingsData.last_revoked_at).getTime();
+          const loginTime = parseInt(localStorage.getItem('admin_login_timestamp') || '0', 10);
+          const currentDeviceSessionId = localStorage.getItem('admin_device_session_id');
+
+          // If another device revoked all other sessions:
+          if (settingsData.active_session_id && settingsData.active_session_id !== currentDeviceSessionId) {
+            console.warn('This device session was revoked from another device.');
+            await supabase.auth.signOut().catch(() => {});
+            localStorage.removeItem('local_demo_auth');
+            if (mounted) {
+              setSession(null);
+              navigate('/login?reason=revoked', { replace: true });
+            }
+            return;
+          }
+
+          // Or if session was globally revoked:
+          if (!settingsData.active_session_id && loginTime > 0 && loginTime < revokedTime) {
+            console.warn('This device session was revoked globally.');
+            await supabase.auth.signOut().catch(() => {});
+            localStorage.removeItem('local_demo_auth');
+            if (mounted) {
+              setSession(null);
+              navigate('/login?reason=revoked', { replace: true });
+            }
+            return;
+          }
+        }
+
         if (mounted) {
-          setSession(data.session);
+          setSession(sessionData.session);
         }
       } catch (err) {
         console.error('Session check failed:', err);
@@ -68,7 +120,7 @@ export default function AdminLayout() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [navigate]);
 
   // ── Inactivity Timeout Watchdog ───────────────────────────
   useEffect(() => {

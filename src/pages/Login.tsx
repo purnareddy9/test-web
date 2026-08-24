@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { Terminal, AlertCircle, Info, Clock, CheckCircle2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, supabaseConfigured } from '../lib/supabase';
+import { setLocalSessionLoginTime } from '../lib/settings';
 
 export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isTimeout = searchParams.get('reason') === 'timeout';
   const isGlobalLogout = searchParams.get('reason') === 'global_logout';
+  const isRevoked = searchParams.get('reason') === 'revoked';
 
   const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState(!supabaseConfigured ? 'admin@example.com' : '');
@@ -60,6 +62,7 @@ export default function Login() {
       if (!supabaseConfigured) {
         if (email.trim() === 'admin@example.com' && password === 'admin') {
           localStorage.setItem('local_demo_auth', 'true');
+          setLocalSessionLoginTime();
           navigate('/admin', { replace: true });
           return;
         } else {
@@ -79,6 +82,7 @@ export default function Login() {
       }
 
       // Login successful
+      setLocalSessionLoginTime();
       navigate('/admin', { replace: true });
     } catch (err: unknown) {
       setError(
@@ -124,6 +128,12 @@ export default function Login() {
             <div className="mb-5 p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-lg text-xs text-emerald-300 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
               <span>You have been signed out from all devices.</span>
+            </div>
+          )}
+          {isRevoked && (
+            <div className="mb-5 p-3 bg-red-500/10 border border-red-500/25 rounded-lg text-xs text-red-300 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-400" />
+              <span>This session was terminated from another device. Please sign in again.</span>
             </div>
           )}
           {!supabaseConfigured && (

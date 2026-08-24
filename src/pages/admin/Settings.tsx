@@ -34,6 +34,8 @@ import {
   resetSectionSettings,
   getSessionTimeoutMinutes,
   saveSessionTimeoutMinutes,
+  revokeOtherSessions,
+  revokeAllSessions,
   TIMEOUT_OPTIONS,
   type DashboardSectionConfig,
   type SectionId,
@@ -208,21 +210,8 @@ export default function AdminSettings() {
     setLoggingOutOthers(true);
     setLogoutOthersMsg(null);
     try {
-      if (isLocalDemo) {
-        await new Promise(r => setTimeout(r, 700));
-        setLogoutOthersMsg({ type: 'ok', text: 'All other demo sessions have been revoked.' });
-        setShowLogoutOthersModal(false);
-        return;
-      }
-
-      if (!supabaseConfigured) {
-        throw new Error('Supabase is not configured.');
-      }
-
-      const { error } = await supabase.auth.signOut({ scope: 'others' });
-      if (error) throw error;
-
-      setLogoutOthersMsg({ type: 'ok', text: 'Successfully logged out of all other sessions.' });
+      await revokeOtherSessions();
+      setLogoutOthersMsg({ type: 'ok', text: 'All other device sessions have been revoked.' });
       setShowLogoutOthersModal(false);
     } catch (err: unknown) {
       setLogoutOthersMsg({
@@ -238,14 +227,7 @@ export default function AdminSettings() {
   async function handleLogoutAllSessions() {
     setLoggingOutAll(true);
     try {
-      localStorage.removeItem('local_demo_auth');
-      if (supabaseConfigured) {
-        try {
-          await supabase.auth.signOut({ scope: 'global' });
-        } catch (err) {
-          console.error(err);
-        }
-      }
+      await revokeAllSessions();
       navigate('/login?reason=global_logout', { replace: true });
     } catch (err: unknown) {
       console.error(err);

@@ -281,3 +281,65 @@ export async function saveSessionTimeoutMinutes(minutes: number): Promise<void> 
     console.error('Failed to save session timeout:', err);
   }
 }
+
+export function getLocalSessionId(): string {
+  let id = localStorage.getItem('admin_device_session_id');
+  if (!id) {
+    id = 'sess_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+    localStorage.setItem('admin_device_session_id', id);
+  }
+  return id;
+}
+
+export function setLocalSessionLoginTime(): void {
+  localStorage.setItem('admin_login_timestamp', Date.now().toString());
+  getLocalSessionId();
+}
+
+export async function revokeOtherSessions(): Promise<void> {
+  const currentSessionId = getLocalSessionId();
+  const now = new Date().toISOString();
+
+  if (supabaseConfigured) {
+    try {
+      await supabase.auth.signOut({ scope: 'others' });
+    } catch (e) {
+      console.warn('Supabase signOut others warning:', e);
+    }
+    try {
+      await supabase.from('site_settings').upsert({
+        id: 'default',
+        last_revoked_at: now,
+        active_session_id: currentSessionId,
+        updated_at: now,
+      });
+    } catch (e) {
+      console.warn('Failed to record revocation timestamp in site_settings:', e);
+    }
+  }
+}
+
+export async function revokeAllSessions(): Promise<void> {
+  const now = new Date().toISOString();
+  localStorage.removeItem('local_demo_auth');
+  localStorage.removeItem('admin_device_session_id');
+  localStorage.removeItem('admin_login_timestamp');
+
+  if (supabaseConfigured) {
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (e) {
+      console.warn('Supabase signOut global warning:', e);
+    }
+    try {
+      await supabase.from('site_settings').upsert({
+        id: 'default',
+        last_revoked_at: now,
+        active_session_id: null,
+        updated_at: now,
+      });
+    } catch (e) {
+      console.warn('Failed to update revocation in site_settings:', e);
+    }
+  }
+}
