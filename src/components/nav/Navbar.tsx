@@ -2,15 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getSectionSettings, type DashboardSectionConfig } from '../../lib/settings';
 
-const NAV_LINKS = [
-  { href: '/#about',    label: 'About' },
-  { href: '/#skills',   label: 'Skills' },
-  { href: '/#workflow', label: 'DevOps Workflow' },
-  { href: '/#experience', label: 'Experience' },
-  { href: '/#projects', label: 'Projects' },
-  { href: '/#certifications', label: 'Certifications' },
-  { href: '/#contact',  label: 'Contact' },
+const ALL_NAV_LINKS = [
+  { id: 'about', href: '/#about', label: 'About' },
+  { id: 'skills', href: '/#skills', label: 'Skills' },
+  { id: 'workflow', href: '/#workflow', label: 'DevOps Workflow' },
+  { id: 'experience', href: '/#experience', label: 'Experience' },
+  { id: 'projects', href: '/#projects', label: 'Projects' },
+  { id: 'certifications', href: '/#certifications', label: 'Certifications' },
+  { id: 'contact', href: '/#contact', label: 'Contact' },
 ];
 
 function scrollTo(id: string) {
@@ -20,13 +21,26 @@ function scrollTo(id: string) {
 export default function Navbar({ resumeUrl }: { resumeUrl?: string }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [sections, setSections] = useState<DashboardSectionConfig[]>(getSectionSettings);
   const { pathname } = useLocation();
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
+
+    const onSettingsUpdate = () => setSections(getSectionSettings());
+    window.addEventListener('sections_config_updated', onSettingsUpdate);
+    window.addEventListener('storage', onSettingsUpdate);
+
+    return () => {
+      window.removeEventListener('scroll', fn);
+      window.removeEventListener('sections_config_updated', onSettingsUpdate);
+      window.removeEventListener('storage', onSettingsUpdate);
+    };
   }, []);
+
+  const enabledSectionIds = new Set(sections.filter(s => s.enabled).map(s => s.id));
+  const navLinks = ALL_NAV_LINKS.filter(link => enabledSectionIds.has(link.id as any));
 
   const handleNav = useCallback((href: string) => {
     setOpen(false);
@@ -44,7 +58,7 @@ export default function Navbar({ resumeUrl }: { resumeUrl?: string }) {
 
         {/* Desktop links */}
         <ul className="hidden lg:flex items-center gap-1" role="list">
-          {NAV_LINKS.map(({ href, label }) => (
+          {navLinks.map(({ href, label }) => (
             <li key={href}>
               <button onClick={() => handleNav(href)}
                 className="px-3 py-2 text-sm text-white/55 hover:text-white transition-colors rounded-md hover:bg-white/[0.04] font-medium">
@@ -79,7 +93,7 @@ export default function Navbar({ resumeUrl }: { resumeUrl?: string }) {
             transition={{ duration: 0.18 }}
             className="lg:hidden bg-[#0a0a0a]/98 backdrop-blur-sm border-b border-white/[0.06] px-6 pb-5">
             <ul className="flex flex-col gap-1 pt-3" role="list">
-              {NAV_LINKS.map(({ href, label }) => (
+              {navLinks.map(({ href, label }) => (
                 <li key={href}>
                   <button onClick={() => handleNav(href)}
                     className="w-full text-left px-3 py-2.5 text-sm text-white/60 hover:text-white transition-colors rounded-md hover:bg-white/[0.04]">

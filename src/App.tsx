@@ -11,6 +11,7 @@ import Experience    from './pages/admin/Experience';
 import Certifications from './pages/admin/Certifications';
 import Messages      from './pages/admin/Messages';
 import Resume        from './pages/admin/Resume';
+import Settings      from './pages/admin/Settings';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="certifications"   element={<Certifications />} />
           <Route path="messages"         element={<Messages />} />
           <Route path="resume"           element={<Resume />} />
+          <Route path="settings"         element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>

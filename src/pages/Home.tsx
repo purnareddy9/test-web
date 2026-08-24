@@ -25,6 +25,12 @@ import {
   getActiveResume,
 } from '../lib/api';
 
+import {
+  getSectionSettings,
+  type DashboardSectionConfig,
+  type SectionId,
+} from '../lib/settings';
+
 import type {
   Profile,
   Project,
@@ -49,11 +55,16 @@ export default function Home() {
   const [exp, setExp] = useState<ExpType[] | null>(null);
   const [certs, setCerts] = useState<Certification[] | null>(null);
   const [resume, setResume] = useState<Resume | null>(null);
+  const [sections, setSections] = useState<DashboardSectionConfig[]>(getSectionSettings);
 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
+
+    const onSettingsUpdate = () => setSections(getSectionSettings());
+    window.addEventListener('sections_config_updated', onSettingsUpdate);
+    window.addEventListener('storage', onSettingsUpdate);
 
     async function loadData() {
       try {
@@ -104,6 +115,8 @@ export default function Home() {
 
     return () => {
       mounted = false;
+      window.removeEventListener('sections_config_updated', onSettingsUpdate);
+      window.removeEventListener('storage', onSettingsUpdate);
     };
   }, []);
 
@@ -133,38 +146,35 @@ export default function Home() {
     );
   }
 
+  const sectionComponentMap: Record<SectionId, React.ReactNode> = {
+    hero: <Hero profile={profile} resume={resume} />,
+    about: <About profile={profile} />,
+    skills: <Skills skills={skills} />,
+    devops_lifecycle: <DevOpsLifecycle />,
+    workflow: <WorkflowAnimation />,
+    cicd: <CICDPipeline />,
+    terraform: <TerraformAnimation />,
+    kubernetes: <KubernetesViz />,
+    pod_lifecycle: <PodLifecycle />,
+    monitoring: <MonitoringDashboard />,
+    experience: <Experience experience={exp} />,
+    projects: <Projects projects={projects} />,
+    certifications: <Certifications certifications={certs} />,
+    contact: <Contact profile={profile} />,
+  };
+
   return (
     <>
       <Navbar resumeUrl={resume?.file_url} />
 
       <main>
-        <Hero profile={profile} resume={resume} />
-
-        <About profile={profile} />
-
-        <Skills skills={skills} />
-
-        <DevOpsLifecycle />
-
-        <WorkflowAnimation />
-
-        <CICDPipeline />
-
-        <TerraformAnimation />
-
-        <KubernetesViz />
-
-        <PodLifecycle />
-
-        <MonitoringDashboard />
-
-        <Experience experience={exp} />
-
-        <Projects projects={projects} />
-
-        <Certifications certifications={certs} />
-
-        <Contact profile={profile} />
+        {sections
+          .filter(s => s.enabled)
+          .map(s => (
+            <div key={s.id} id={s.id}>
+              {sectionComponentMap[s.id]}
+            </div>
+          ))}
       </main>
 
       <Footer profile={profile} />
