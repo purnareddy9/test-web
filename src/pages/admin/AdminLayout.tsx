@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, User, FolderKanban, Wrench, Briefcase,
   Award, MessageSquare, FileText, Settings, LogOut, Menu, X, Terminal,
 } from 'lucide-react';
 import { supabase, supabaseConfigured } from '../../lib/supabase';
+import { getSessionTimeoutMinutes } from '../../lib/settings';
 import type { Session } from '@supabase/supabase-js';
 
 const NAV = [
@@ -21,6 +22,7 @@ const NAV = [
 ];
 
 export default function AdminLayout() {
+  const navigate = useNavigate();
   const [session, setSession] = useState<Session | null | 'loading'>('loading');
   const [sideOpen, setSideOpen] = useState(false);
   const { pathname } = useLocation();
@@ -68,14 +70,44 @@ export default function AdminLayout() {
     };
   }, []);
 
-  if (session === 'loading') return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <div className="w-5 h-5 border-2 border-white/10 border-t-cyan-400 rounded-full animate-spin" />
-    </div>
-  );
-  if (!session) return <Navigate to="/login" replace />;
+  // ── Inactivity Timeout Watchdog ───────────────────────────
+  useEffect(() => {
+    if (!session || session === 'loading') return;
 
-  async function logout() {
+    let timeoutMinutes = getSessionTimeoutMinutes();
+    let lastActivity = Date.now();
+
+    const updateActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const onTimeoutSettingChange = (e: Event) => {
+      const customEvent = e as CustomEvent<number>;
+      if (typeof customEvent.detail === 'number') {
+        timeoutMinutes = customEvent.detail;
+      }
+    };
+
+    const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(evt => window.addEventListener(evt, updateActivity, { passive: true }));
+    window.addEventListener('session_timeout_updated', onTimeoutSettingChange);
+
+    const interval = setInterval(() => {
+      if (timeoutMinutes <= 0) return;
+      const elapsedMinutes = (Date.now() - lastActivity) / 60000;
+      if (elapsedMinutes >= timeoutMinutes) {
+        handleLogout(true);
+      }
+    }, 5000);
+
+    return () => {
+      events.forEach(evt => window.removeEventListener(evt, updateActivity));
+      window.removeEventListener('session_timeout_updated', onTimeoutSettingChange);
+      clearInterval(interval);
+    };
+  }, [session]);
+
+  async function handleLogout(timedOut = false) {
     localStorage.removeItem('local_demo_auth');
     if (supabaseConfigured) {
       try {
@@ -85,6 +117,20 @@ export default function AdminLayout() {
       }
     }
     setSession(null);
+    if (timedOut) {
+      navigate('/login?reason=timeout', { replace: true });
+    }
+  }
+
+  if (session === 'loading') return (
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="w-5 h-5 border-2 border-white/10 border-t-cyan-400 rounded-full animate-spin" />
+    </div>
+  );
+  if (!session) return <Navigate to="/login" replace />;
+
+  async function logout() {
+    await handleLogout(false);
   }
 
   return (

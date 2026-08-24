@@ -191,18 +191,27 @@ export function resetSectionSettings(): DashboardSectionConfig[] {
   return DEFAULT_SECTIONS;
 }
 
+export const TIMEOUT_OPTIONS = [
+  { label: '5 Minutes', value: 5 },
+  { label: '10 Minutes', value: 10 },
+  { label: '15 Minutes', value: 15 },
+  { label: '30 Minutes', value: 30 },
+  { label: '1 Hour', value: 60 },
+];
+
 export function getSessionTimeoutMinutes(): number {
   try {
     const raw = localStorage.getItem(TIMEOUT_KEY);
-    return raw ? parseInt(raw, 10) : 60; // default 60 minutes
+    return raw ? parseInt(raw, 10) : 30; // default 30 minutes
   } catch {
-    return 60;
+    return 30;
   }
 }
 
 export function saveSessionTimeoutMinutes(minutes: number): void {
   try {
     localStorage.setItem(TIMEOUT_KEY, minutes.toString());
+    window.dispatchEvent(new CustomEvent('session_timeout_updated', { detail: minutes }));
   } catch (err) {
     console.error('Failed to save session timeout:', err);
   }

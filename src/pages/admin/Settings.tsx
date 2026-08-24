@@ -32,6 +32,7 @@ import {
   resetSectionSettings,
   getSessionTimeoutMinutes,
   saveSessionTimeoutMinutes,
+  TIMEOUT_OPTIONS,
   type DashboardSectionConfig,
   type SectionId,
 } from '../../lib/settings';
@@ -83,16 +84,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   Showcase: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
   Engagement: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
 };
-
-const TIMEOUT_OPTIONS = [
-  { label: '15 Minutes', value: 15 },
-  { label: '30 Minutes', value: 30 },
-  { label: '1 Hour (Recommended)', value: 60 },
-  { label: '4 Hours', value: 240 },
-  { label: '8 Hours', value: 480 },
-  { label: '24 Hours', value: 1440 },
-  { label: 'Never / Session Persist', value: 0 },
-];
 
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<Tab>('account');
