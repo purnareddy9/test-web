@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield,
@@ -87,6 +88,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function AdminSettings() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('account');
 
   // ── Account & Security State ──────────────────────────────
@@ -107,6 +109,9 @@ export default function AdminSettings() {
   const [showLogoutOthersModal, setShowLogoutOthersModal] = useState(false);
   const [loggingOutOthers, setLoggingOutOthers] = useState(false);
   const [logoutOthersMsg, setLogoutOthersMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  const [showLogoutAllModal, setShowLogoutAllModal] = useState(false);
+  const [loggingOutAll, setLoggingOutAll] = useState(false);
 
   const [showResetSectionsModal, setShowResetSectionsModal] = useState(false);
   const [showClearCacheModal, setShowClearCacheModal] = useState(false);
@@ -227,6 +232,26 @@ export default function AdminSettings() {
       setShowLogoutOthersModal(false);
     } finally {
       setLoggingOutOthers(false);
+    }
+  }
+
+  async function handleLogoutAllSessions() {
+    setLoggingOutAll(true);
+    try {
+      localStorage.removeItem('local_demo_auth');
+      if (supabaseConfigured) {
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      navigate('/login?reason=global_logout', { replace: true });
+    } catch (err: unknown) {
+      console.error(err);
+      navigate('/login?reason=global_logout', { replace: true });
+    } finally {
+      setLoggingOutAll(false);
     }
   }
 
@@ -623,18 +648,28 @@ export default function AdminSettings() {
                 </div>
 
                 <p className="text-xs text-white/50 leading-relaxed">
-                  Lost a device or suspect an active session elsewhere? Revoke all other active refresh tokens
-                  and force logout on all other browsers.
+                  Revoke active refresh tokens on other devices, or sign out everywhere immediately.
                 </p>
 
-                <button
-                  type="button"
-                  onClick={() => setShowLogoutOthersModal(true)}
-                  className="btn-outline w-full justify-center text-xs py-2.5 text-red-400 border-red-500/30 hover:bg-red-500/10 hover:border-red-500/50"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Logout From All Other Sessions
-                </button>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLogoutOthersModal(true)}
+                    className="btn-outline w-full justify-center text-xs py-2.5 text-amber-400 border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/50"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Logout Other Devices (Keep This One)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowLogoutAllModal(true)}
+                    className="btn-outline w-full justify-center text-xs py-2.5 text-red-400 border-red-500/30 hover:bg-red-500/10 hover:border-red-500/50"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    Sign Out Everywhere (All Devices)
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -959,9 +994,61 @@ export default function AdminSettings() {
                   type="button"
                   onClick={handleLogoutOtherSessions}
                   disabled={loggingOutOthers}
+                  className="btn-primary flex-1 justify-center text-sm !bg-amber-500 hover:!bg-amber-600 !text-black font-semibold"
+                >
+                  {loggingOutOthers ? 'Revoking…' : 'Yes, Revoke Other Sessions'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 1.1 Logout Everywhere Modal */}
+      <AnimatePresence>
+        {showLogoutAllModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="card max-w-md w-full p-6 space-y-5 border-red-500/40 shadow-2xl shadow-red-500/10"
+            >
+              <div className="flex items-center gap-3 text-red-400">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-white text-base">Sign Out Everywhere?</h3>
+                  <p className="text-xs text-white/40">Global logout from all devices</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-white/60 leading-relaxed">
+                This will immediately revoke all access tokens across all browsers, phones, and devices—including this current browser. You will be redirected to the login page.
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutAllModal(false)}
+                  className="btn-outline flex-1 justify-center text-sm"
+                  disabled={loggingOutAll}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogoutAllSessions}
+                  disabled={loggingOutAll}
                   className="btn-primary flex-1 justify-center text-sm !bg-red-500 hover:!bg-red-600 !text-white"
                 >
-                  {loggingOutOthers ? 'Revoking…' : 'Yes, Revoke Sessions'}
+                  {loggingOutAll ? 'Signing out…' : 'Sign Out Everywhere'}
                 </button>
               </div>
             </motion.div>

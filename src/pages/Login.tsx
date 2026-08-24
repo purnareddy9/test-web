@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Terminal, AlertCircle, Info, Clock } from 'lucide-react';
+import { Terminal, AlertCircle, Info, Clock, CheckCircle2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 
@@ -8,6 +8,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isTimeout = searchParams.get('reason') === 'timeout';
+  const isGlobalLogout = searchParams.get('reason') === 'global_logout';
 
   const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState(!supabaseConfigured ? 'admin@example.com' : '');
@@ -117,6 +118,12 @@ export default function Login() {
             <div className="mb-5 p-3 bg-amber-500/10 border border-amber-500/25 rounded-lg text-xs text-amber-300 flex items-center gap-2">
               <Clock className="w-4 h-4 flex-shrink-0 text-amber-400" />
               <span>Session timed out due to inactivity. Please sign in again.</span>
+            </div>
+          )}
+          {isGlobalLogout && (
+            <div className="mb-5 p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-lg text-xs text-emerald-300 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+              <span>You have been signed out from all devices.</span>
             </div>
           )}
           {!supabaseConfigured && (
