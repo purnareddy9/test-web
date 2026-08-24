@@ -1,3 +1,5 @@
+import { supabase, supabaseConfigured } from './supabase';
+
 export type SectionId =
   | 'hero'
   | 'about'
@@ -149,13 +151,22 @@ export const DEFAULT_SECTIONS: DashboardSectionConfig[] = [
 const STORAGE_KEY = 'portfolio_sections_config';
 const TIMEOUT_KEY = 'admin_session_timeout';
 
+export const TIMEOUT_OPTIONS = [
+  { label: '5 Minutes', value: 5 },
+  { label: '10 Minutes', value: 10 },
+  { label: '15 Minutes', value: 15 },
+  { label: '30 Minutes', value: 30 },
+  { label: '1 Hour', value: 60 },
+];
+
 export function getSectionSettings(): DashboardSectionConfig[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SECTIONS;
     const parsed: DashboardSectionConfig[] = JSON.parse(raw);
 
-    // Merge with DEFAULT_SECTIONS to handle any newly added sections gracefully
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_SECTIONS;
+
     const map = new Map(parsed.map(s => [s.id, s]));
     const merged = DEFAULT_SECTIONS.map((def) => {
       const existing = map.get(def.id);
@@ -170,34 +181,78 @@ export function getSectionSettings(): DashboardSectionConfig[] {
   }
 }
 
-export function saveSectionSettings(sections: DashboardSectionConfig[]): void {
+export async function fetchRemoteSettings(): Promise<DashboardSectionConfig[]> {
+  try {
+    if (supabaseConfigured) {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle();
+
+      if (!error && data) {
+        if (Array.isArray(data.sections) && data.sections.length > 0) {
+          const map = new Map(data.sections.map((s: any) => [s.id, s]));
+          const merged = DEFAULT_SECTIONS.map((def) => {
+            const existing = map.get(def.id);
+            return existing
+              ? { ...def, ...existing, name: def.name, description: def.description, category: def.category }
+              : def;
+          });
+          const sorted = merged.sort((a, b) => a.order - b.order);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+          if (typeof data.session_timeout === 'number') {
+            localStorage.setItem(TIMEOUT_KEY, data.session_timeout.toString());
+          }
+          window.dispatchEvent(new CustomEvent('sections_config_updated', { detail: sorted }));
+          return sorted;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch remote site settings, falling back to local:', err);
+  }
+  return getSectionSettings();
+}
+
+export async function saveSectionSettings(sections: DashboardSectionConfig[]): Promise<void> {
   try {
     const indexed = sections.map((s, idx) => ({ ...s, order: idx }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(indexed));
-    // Dispatch a custom storage event so other tabs/components update reactively
     window.dispatchEvent(new CustomEvent('sections_config_updated', { detail: indexed }));
+
+    if (supabaseConfigured) {
+      const timeout = getSessionTimeoutMinutes();
+      await supabase.from('site_settings').upsert({
+        id: 'default',
+        sections: indexed,
+        session_timeout: timeout,
+        updated_at: new Date().toISOString(),
+      });
+    }
   } catch (err) {
     console.error('Failed to save section settings:', err);
   }
 }
 
-export function resetSectionSettings(): DashboardSectionConfig[] {
+export async function resetSectionSettings(): Promise<DashboardSectionConfig[]> {
   try {
     localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new CustomEvent('sections_config_updated', { detail: DEFAULT_SECTIONS }));
+
+    if (supabaseConfigured) {
+      await supabase.from('site_settings').upsert({
+        id: 'default',
+        sections: DEFAULT_SECTIONS,
+        session_timeout: 30,
+        updated_at: new Date().toISOString(),
+      });
+    }
   } catch (err) {
     console.error('Failed to reset section settings:', err);
   }
   return DEFAULT_SECTIONS;
 }
-
-export const TIMEOUT_OPTIONS = [
-  { label: '5 Minutes', value: 5 },
-  { label: '10 Minutes', value: 10 },
-  { label: '15 Minutes', value: 15 },
-  { label: '30 Minutes', value: 30 },
-  { label: '1 Hour', value: 60 },
-];
 
 export function getSessionTimeoutMinutes(): number {
   try {
@@ -208,10 +263,20 @@ export function getSessionTimeoutMinutes(): number {
   }
 }
 
-export function saveSessionTimeoutMinutes(minutes: number): void {
+export async function saveSessionTimeoutMinutes(minutes: number): Promise<void> {
   try {
     localStorage.setItem(TIMEOUT_KEY, minutes.toString());
     window.dispatchEvent(new CustomEvent('session_timeout_updated', { detail: minutes }));
+
+    if (supabaseConfigured) {
+      const sections = getSectionSettings();
+      await supabase.from('site_settings').upsert({
+        id: 'default',
+        sections,
+        session_timeout: minutes,
+        updated_at: new Date().toISOString(),
+      });
+    }
   } catch (err) {
     console.error('Failed to save session timeout:', err);
   }

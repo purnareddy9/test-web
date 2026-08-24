@@ -28,6 +28,7 @@ import {
 import { supabase, supabaseConfigured, isLocalDemo } from '../../lib/supabase';
 import {
   getSectionSettings,
+  fetchRemoteSettings,
   saveSectionSettings,
   resetSectionSettings,
   getSessionTimeoutMinutes,
@@ -117,10 +118,22 @@ export default function AdminSettings() {
   const [saveBanner, setSaveBanner] = useState(false);
 
   useEffect(() => {
-    const onUpdate = () => setSections(getSectionSettings());
+    let mounted = true;
+    fetchRemoteSettings().then(remoteSections => {
+      if (mounted && remoteSections) {
+        setSections(remoteSections);
+        setSessionTimeout(getSessionTimeoutMinutes());
+      }
+    });
+
+    const onUpdate = () => {
+      setSections(getSectionSettings());
+      setSessionTimeout(getSessionTimeoutMinutes());
+    };
     window.addEventListener('sections_config_updated', onUpdate);
     window.addEventListener('storage', onUpdate);
     return () => {
+      mounted = false;
       window.removeEventListener('sections_config_updated', onUpdate);
       window.removeEventListener('storage', onUpdate);
     };
@@ -246,8 +259,8 @@ export default function AdminSettings() {
     triggerSaveToast();
   }
 
-  function handleResetSections() {
-    const reset = resetSectionSettings();
+  async function handleResetSections() {
+    const reset = await resetSectionSettings();
     setSections(reset);
     setShowResetSectionsModal(false);
     triggerSaveToast();

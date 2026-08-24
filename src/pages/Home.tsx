@@ -27,6 +27,7 @@ import {
 
 import {
   getSectionSettings,
+  fetchRemoteSettings,
   type DashboardSectionConfig,
   type SectionId,
 } from '../lib/settings';
@@ -75,6 +76,7 @@ export default function Home() {
           experienceData,
           certificationsData,
           resumeData,
+          sectionsData,
         ] = await Promise.all([
           getProfile(),
           getProjects(),
@@ -82,6 +84,7 @@ export default function Home() {
           getExperience(),
           getCertifications(),
           getActiveResume(),
+          fetchRemoteSettings(),
         ]);
 
         if (!mounted) return;
@@ -92,6 +95,7 @@ export default function Home() {
         setExp(experienceData);
         setCerts(certificationsData);
         setResume(resumeData);
+        if (sectionsData) setSections(sectionsData);
       } catch (error) {
         console.error('Portfolio data loading failed:', error);
 
