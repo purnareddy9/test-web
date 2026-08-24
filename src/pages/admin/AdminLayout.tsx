@@ -5,7 +5,7 @@ import {
   LayoutDashboard, User, FolderKanban, Wrench, Briefcase,
   Award, MessageSquare, FileText, Settings, LogOut, Menu, X, Terminal,
 } from 'lucide-react';
-import { supabase, isLocalDemo } from '../../lib/supabase';
+import { supabase, supabaseConfigured } from '../../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
 const NAV = [
@@ -26,15 +26,46 @@ export default function AdminLayout() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    if (isLocalDemo) {
-      const isLocalAuth = localStorage.getItem('local_demo_auth') === 'true';
-      setSession(isLocalAuth ? ({ user: { email: 'admin@example.com' } } as unknown as Session) : null);
-      return;
+    let mounted = true;
+
+    async function checkAuth() {
+      try {
+        if (!supabaseConfigured) {
+          const isLocalAuth = localStorage.getItem('local_demo_auth') === 'true';
+          if (mounted) {
+            setSession(isLocalAuth ? ({ user: { email: 'admin@example.com' } } as unknown as Session) : null);
+          }
+          return;
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (mounted) {
+          setSession(data.session);
+        }
+      } catch (err) {
+        console.error('Session check failed:', err);
+        if (mounted) {
+          setSession(null);
+        }
+      }
     }
 
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => setSession(s));
-    return () => subscription.unsubscribe();
+    checkAuth();
+
+    if (supabaseConfigured) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => {
+        if (mounted) setSession(s);
+      });
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+      };
+    }
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (session === 'loading') return (
@@ -45,12 +76,15 @@ export default function AdminLayout() {
   if (!session) return <Navigate to="/login" replace />;
 
   async function logout() {
-    if (isLocalDemo) {
-      localStorage.removeItem('local_demo_auth');
-      setSession(null);
-      return;
+    localStorage.removeItem('local_demo_auth');
+    if (supabaseConfigured) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error('Sign out error:', err);
+      }
     }
-    await supabase.auth.signOut();
+    setSession(null);
   }
 
   return (

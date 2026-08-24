@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Terminal, AlertCircle, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, isLocalDemo } from '../lib/supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
 
 export default function Login() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState(isLocalDemo ? 'admin@example.com' : '');
-  const [password, setPassword] = useState(isLocalDemo ? 'admin' : '');
+  const [email, setEmail] = useState(!supabaseConfigured ? 'admin@example.com' : '');
+  const [password, setPassword] = useState(!supabaseConfigured ? 'admin' : '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,7 +21,7 @@ export default function Login() {
     setError('');
 
     try {
-      if (isLocalDemo) {
+      if (!supabaseConfigured) {
         if (email.trim() === 'admin@example.com' && password === 'admin') {
           localStorage.setItem('local_demo_auth', 'true');
           navigate('/admin', { replace: true });
@@ -70,11 +70,11 @@ export default function Login() {
         </div>
 
         <div className="card p-7">
-          {isLocalDemo && (
+          {!supabaseConfigured && (
             <div className="mb-5 p-3 bg-cyan-400/[0.08] border border-cyan-400/20 rounded-lg text-xs">
               <div className="flex items-center gap-1.5 text-cyan-400 font-medium mb-1">
                 <Info className="w-3.5 h-3.5" />
-                <span>Local Demo Mode (Dev Only)</span>
+                <span>Demo Mode (Supabase Unconfigured)</span>
               </div>
               <p className="text-white/60">Email: <span className="font-mono text-cyan-300">admin@example.com</span></p>
               <p className="text-white/60">Password: <span className="font-mono text-cyan-300">admin</span></p>

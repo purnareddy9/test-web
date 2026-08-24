@@ -120,13 +120,19 @@ export default function AdminSettings() {
   const [showClearCacheModal, setShowClearCacheModal] = useState(false);
 
   // ── Dashboard Sections State ──────────────────────────────
-  const [sections, setSections] = useState<DashboardSectionConfig[]>([]);
+  const [sections, setSections] = useState<DashboardSectionConfig[]>(() => getSectionSettings());
   const [sectionSearch, setSectionSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [saveBanner, setSaveBanner] = useState(false);
 
   useEffect(() => {
-    setSections(getSectionSettings());
+    const onUpdate = () => setSections(getSectionSettings());
+    window.addEventListener('sections_config_updated', onUpdate);
+    window.addEventListener('storage', onUpdate);
+    return () => {
+      window.removeEventListener('sections_config_updated', onUpdate);
+      window.removeEventListener('storage', onUpdate);
+    };
   }, []);
 
   const strength = useMemo(() => calculatePasswordStrength(newPassword), [newPassword]);
