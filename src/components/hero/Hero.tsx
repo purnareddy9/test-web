@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { GitFork, Link2, Mail, ExternalLink, Download, RefreshCw } from 'lucide-react';
 import { FadeUp } from '../common/Motion';
 import type { Profile, Resume } from '../../types';
 
-const ROLES = ['DevOps Engineer', 'Cloud Engineer', 'Platform Engineer', 'Site Reliability Engineer'];
+const DEFAULT_ROLES = ['DevOps Engineer', 'Cloud Engineer', 'Platform Engineer', 'Site Reliability Engineer'];
 
 function useTyping(strings: string[], speed = 70, pause = 2000) {
   const [text, setText] = useState('');
@@ -123,7 +123,13 @@ function Terminal() {
 }
 
 export default function Hero({ profile, resume }: { profile: Profile; resume: Resume | null }) {
-  const typed = useTyping(ROLES);
+  const roles = useMemo(() => {
+    if (!profile?.headline) return DEFAULT_ROLES;
+    const parsed = profile.headline.split(',').map(r => r.trim()).filter(Boolean);
+    return parsed.length > 0 ? parsed : DEFAULT_ROLES;
+  }, [profile?.headline]);
+
+  const typed = useTyping(roles);
   const goProjects = () => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' });
   const goAbout    = () => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
 
@@ -160,11 +166,13 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
               </div>
             </FadeUp>
 
-            <FadeUp immediate delay={0.28}>
-              <p className="text-white/45 text-base leading-relaxed mb-8 max-w-md">
-                {profile.bio.split('\n')[0]}
-              </p>
-            </FadeUp>
+            {profile.bio && (
+              <FadeUp immediate delay={0.28}>
+                <p className="text-white/45 text-base leading-relaxed mb-8 max-w-md">
+                  {profile.bio.split('\n').map(s => s.trim()).filter(Boolean)[0]}
+                </p>
+              </FadeUp>
+            )}
 
             <FadeUp immediate delay={0.35}>
               <div className="flex flex-wrap gap-3 mb-9">
@@ -188,8 +196,8 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
                 {[
                   { icon: GitFork, label: 'GitHub',   href: profile.github_url },
                   { icon: Link2,   label: 'LinkedIn', href: profile.linkedin_url },
-                  { icon: Mail,    label: 'Email',    href: `mailto:${profile.email}` },
-                ].filter(s => s.href).map(({ icon: Icon, label, href }) => (
+                  { icon: Mail,    label: 'Email',    href: profile.email ? `mailto:${profile.email}` : undefined },
+                ].filter(s => !!s.href).map(({ icon: Icon, label, href }) => (
                   <a key={label} href={href!}
                     target={href!.startsWith('http') ? '_blank' : undefined}
                     rel={href!.startsWith('http') ? 'noopener noreferrer' : undefined}

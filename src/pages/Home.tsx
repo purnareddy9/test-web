@@ -124,6 +124,36 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (profile?.name) {
+      const primaryRole = profile.headline ? profile.headline.split(',')[0].trim() : 'DevOps Engineer';
+      const pageTitle = `${profile.name} — ${primaryRole}`;
+      document.title = pageTitle;
+
+      // Dynamically update SEO & OpenGraph meta tags from database
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute(
+          'content',
+          profile.bio ? profile.bio.split('\n')[0] : `${profile.name} — ${profile.headline || 'Cloud & DevOps Engineer Portfolio'}`
+        );
+      }
+
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) {
+        ogTitle.setAttribute('content', pageTitle);
+      }
+
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) {
+        ogDesc.setAttribute(
+          'content',
+          profile.headline || 'Cloud infrastructure, Kubernetes, CI/CD, Terraform.'
+        );
+      }
+    }
+  }, [profile]);
+
   /*
    * Do not render fallback data while Supabase is still loading.
    * This prevents fallback values and their animations from appearing

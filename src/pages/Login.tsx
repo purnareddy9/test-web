@@ -19,6 +19,7 @@ export default function Login() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    document.title = 'Admin Login';
     let mounted = true;
 
     async function checkExistingSession() {

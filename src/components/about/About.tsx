@@ -3,7 +3,7 @@ import { SectionHeader, FadeUp, StaggerList, StaggerItem, Counter } from '../com
 import type { Profile } from '../../types';
 
 export default function About({ profile }: { profile: Profile }) {
-  const paras = profile.bio.split('\n').filter(Boolean);
+  const paras = profile.bio ? profile.bio.split('\n').filter(Boolean) : [];
   const stats = [
     { value: profile.years_experience,   suffix: '+', label: 'Years Experience' },
     { value: profile.projects_count,     suffix: '+', label: 'Projects Completed' },
@@ -25,12 +25,16 @@ export default function About({ profile }: { profile: Profile }) {
               ))}
             </div>
             <div className="flex flex-wrap gap-4 mt-7">
-              <span className="flex items-center gap-2 text-sm text-white/40">
-                <MapPin className="w-4 h-4 text-cyan-400/70" /> {profile.location}
-              </span>
-              <span className="flex items-center gap-2 text-sm text-white/40">
-                <Briefcase className="w-4 h-4 text-cyan-400/70" /> {profile.availability}
-              </span>
+              {profile.location && (
+                <span className="flex items-center gap-2 text-sm text-white/40">
+                  <MapPin className="w-4 h-4 text-cyan-400/70" /> {profile.location}
+                </span>
+              )}
+              {profile.availability && (
+                <span className="flex items-center gap-2 text-sm text-white/40">
+                  <Briefcase className="w-4 h-4 text-cyan-400/70" /> {profile.availability}
+                </span>
+              )}
             </div>
           </FadeUp>
 

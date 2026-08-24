@@ -32,21 +32,22 @@ export default function AdminProfile() {
       <form onSubmit={save} className="card p-6 max-w-2xl space-y-4">
         <div className="grid sm:grid-cols-2 gap-4">
           {[
-            { k: 'name', l: 'Full Name' },
-            { k: 'headline', l: 'Headline' },
-            { k: 'email', l: 'Email', type: 'email' },
-            { k: 'location', l: 'Location' },
-            { k: 'github_url', l: 'GitHub URL' },
-            { k: 'linkedin_url', l: 'LinkedIn URL' },
+            { k: 'name', l: 'Full Name', ph: 'e.g. Poorna' },
+            { k: 'headline', l: 'Headline / Animated Roles (comma-separated)', ph: 'e.g. DevOps Engineer, Cloud Engineer, Platform Engineer' },
+            { k: 'email', l: 'Email', type: 'email', ph: 'e.g. contact@example.com' },
+            { k: 'location', l: 'Location', ph: 'e.g. San Francisco, CA' },
+            { k: 'github_url', l: 'GitHub URL', ph: 'https://github.com/...' },
+            { k: 'linkedin_url', l: 'LinkedIn URL', ph: 'https://linkedin.com/in/...' },
             { k: 'years_experience', l: 'Years Experience', type: 'number' },
             { k: 'projects_count', l: 'Projects Count', type: 'number' },
             { k: 'deployments_count', l: 'Deployments Count', type: 'number' },
             { k: 'certifications_count', l: 'Certifications Count', type: 'number' },
-          ].map(({ k, l, type = 'text' }) => (
+          ].map(({ k, l, type = 'text', ph }) => (
             <div key={k}>
               <label className="block text-xs text-white/40 mb-1.5">{l}</label>
               <input
                 type={type}
+                placeholder={ph}
                 value={(form as Record<string, unknown>)[k] as string ?? ''}
                 onChange={e => change(k as keyof Profile, type === 'number' ? +e.target.value : e.target.value)}
                 className="form-input"

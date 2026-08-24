@@ -28,6 +28,7 @@ export default function AdminLayout() {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    document.title = 'Admin Panel';
     let mounted = true;
 
     async function checkAuth() {
