@@ -161,9 +161,11 @@ export default function AdminLayout() {
 
   async function handleLogout(timedOut = false) {
     localStorage.removeItem('local_demo_auth');
+    localStorage.removeItem('admin_device_session_id');
+    localStorage.removeItem('admin_login_timestamp');
     if (supabaseConfigured) {
       try {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
       } catch (err) {
         console.error('Sign out error:', err);
       }
