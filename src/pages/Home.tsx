@@ -169,7 +169,7 @@ export default function Home() {
 
   return (
     <>
-      <Navbar resumeUrl={resume?.file_url} />
+      <Navbar resumeUrl={resume?.file_url} name={profile?.name} />
 
       <main>
         {sections

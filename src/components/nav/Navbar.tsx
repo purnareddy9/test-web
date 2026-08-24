@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSectionSettings, type DashboardSectionConfig } from '../../lib/settings';
+import { getProfile } from '../../lib/api';
 
 const ALL_NAV_LINKS = [
   { id: 'about', href: '/#about', label: 'About' },
@@ -18,11 +19,26 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 }
 
-export default function Navbar({ resumeUrl }: { resumeUrl?: string }) {
+export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?: string }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [sections, setSections] = useState<DashboardSectionConfig[]>(getSectionSettings);
+  const [profileName, setProfileName] = useState<string>(() => name || localStorage.getItem('portfolio_owner_name') || 'alex');
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (name) {
+      setProfileName(name);
+      localStorage.setItem('portfolio_owner_name', name);
+    } else {
+      getProfile().then(p => {
+        if (p?.name) {
+          setProfileName(p.name);
+          localStorage.setItem('portfolio_owner_name', p.name);
+        }
+      }).catch(() => {});
+    }
+  }, [name]);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
@@ -48,12 +64,14 @@ export default function Navbar({ resumeUrl }: { resumeUrl?: string }) {
     if (pathname === '/') { scrollTo(id); }
   }, [pathname]);
 
+  const displayName = (profileName || 'alex').trim().split(' ')[0].toLowerCase();
+
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-white/[0.06]' : 'bg-transparent'}`}>
       <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between" aria-label="Main navigation">
         {/* Logo */}
         <Link to="/" className="font-display font-bold text-white text-lg tracking-tight hover:text-cyan-400 transition-colors">
-          alex<span className="text-cyan-400">.</span>
+          {displayName}<span className="text-cyan-400">.</span>
         </Link>
 
         {/* Desktop links */}
