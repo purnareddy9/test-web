@@ -1,4 +1,5 @@
 import { supabase, supabaseConfigured } from './supabase';
+import { getNotificationSettings } from './settings';
 import {
   fallbackProfile, fallbackProjects, fallbackSkills, fallbackExperience,
   fallbackEducation, fallbackCertifications, fallbackTestimonials,
@@ -149,18 +150,84 @@ export async function getTestimonials(): Promise<Testimonial[]> {
 
 // ── Messages ──────────────────────────────────────────────
 export async function getMessages(): Promise<Message[]> {
-  if (!cfg()) return [];
+  if (!cfg()) {
+    const raw = localStorage.getItem('local_demo_messages');
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch {}
+    }
+    return [];
+  }
   const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
   return (data as Message[]) ?? [];
 }
 
-export async function submitContact(form: { name: string; email: string; subject: string; message: string }): Promise<{ success: boolean; error?: string }> {
+export async function getUnreadMessageCount(): Promise<number> {
   if (!cfg()) {
-    await new Promise(r => setTimeout(r, 800));
+    const msgs = await getMessages();
+    return msgs.filter(m => m.status === 'new').length;
+  }
+  const { count, error } = await supabase
+    .from('messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'new');
+  return error ? 0 : (count ?? 0);
+}
+
+export async function markAllMessagesRead(): Promise<void> {
+  if (!cfg()) {
+    const current = await getMessages();
+    const updated = current.map(m => (m.status === 'new' ? { ...m, status: 'read' as const } : m));
+    localStorage.setItem('local_demo_messages', JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('messages_updated', { detail: { unreadCount: 0 } }));
+    return;
+  }
+  await supabase.from('messages').update({ status: 'read' }).eq('status', 'new');
+  window.dispatchEvent(new CustomEvent('messages_updated', { detail: { unreadCount: 0 } }));
+}
+
+export async function submitContact(form: { name: string; email: string; subject: string; message: string }): Promise<{ success: boolean; error?: string }> {
+  const newMsg: Message = {
+    id: 'msg_' + Math.random().toString(36).substring(2, 9),
+    ...form,
+    status: 'new',
+    created_at: new Date().toISOString(),
+  };
+
+  if (!cfg()) {
+    await new Promise(r => setTimeout(r, 600));
+    const current = await getMessages();
+    const updated = [newMsg, ...current];
+    localStorage.setItem('local_demo_messages', JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg, unreadCount: updated.filter(m => m.status === 'new').length } }));
     return { success: true };
   }
-  const { error } = await supabase.from('messages').insert([{ ...form, status: 'new' }]);
+
+  const { data, error } = await supabase.from('messages').insert([{ ...form, status: 'new' }]).select().single();
   if (error) return { success: false, error: error.message };
+
+  window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg: data || newMsg, unreadCount: 1 } }));
+
+  // Email Notification Trigger
+  try {
+    const notifSettings = getNotificationSettings();
+    if (notifSettings.emailNotificationsEnabled && notifSettings.adminNotificationEmail) {
+      supabase.functions.invoke('send-contact-email', {
+        body: {
+          recipient: notifSettings.adminNotificationEmail,
+          name: form.name,
+          email: form.email,
+          subject: form.subject,
+          message: form.message,
+          timestamp: new Date().toISOString(),
+        },
+      }).catch(e => console.warn('Email dispatch notice:', e));
+    }
+  } catch (err) {
+    console.warn('Could not trigger notification email:', err);
+  }
+
   return { success: true };
 }
 
@@ -169,4 +236,60 @@ export async function getActiveResume(): Promise<Resume | null> {
   if (!cfg()) return null;
   const { data } = await supabase.from('resume').select('*').eq('active', true).limit(1).single();
   return (data as Resume) ?? null;
+}
+
+// ── Profile Views Analytics ───────────────────────────────
+const VIEWS_STORAGE_KEY = 'portfolio_profile_views_count';
+
+export async function getProfileViewsCount(): Promise<number> {
+  if (!cfg()) {
+    const raw = localStorage.getItem(VIEWS_STORAGE_KEY);
+    return raw ? parseInt(raw, 10) : 142;
+  }
+  try {
+    const { data } = await supabase
+      .from('site_settings')
+      .select('views_count')
+      .eq('id', 'default')
+      .maybeSingle();
+    if (data && typeof data.views_count === 'number') {
+      return data.views_count;
+    }
+  } catch (e) {
+    console.warn('Could not fetch views_count from site_settings:', e);
+  }
+  const raw = localStorage.getItem(VIEWS_STORAGE_KEY);
+  return raw ? parseInt(raw, 10) : 142;
+}
+
+export async function incrementProfileViews(): Promise<number> {
+  let currentViews = 142;
+  const raw = localStorage.getItem(VIEWS_STORAGE_KEY);
+  if (raw) {
+    currentViews = parseInt(raw, 10);
+  }
+  const updatedViews = currentViews + 1;
+  localStorage.setItem(VIEWS_STORAGE_KEY, updatedViews.toString());
+
+  if (cfg()) {
+    try {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('views_count')
+        .eq('id', 'default')
+        .maybeSingle();
+
+      const dbViews = (data?.views_count || currentViews) + 1;
+      await supabase.from('site_settings').upsert({
+        id: 'default',
+        views_count: dbViews,
+        updated_at: new Date().toISOString(),
+      });
+      return dbViews;
+    } catch (e) {
+      console.warn('Could not increment views_count in site_settings:', e);
+    }
+  }
+
+  return updatedViews;
 }

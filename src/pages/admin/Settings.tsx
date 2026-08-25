@@ -25,6 +25,9 @@ import {
   X,
   AlertTriangle,
   Database,
+  Bell,
+  Mail,
+  Send,
 } from 'lucide-react';
 import { supabase, supabaseConfigured, isLocalDemo } from '../../lib/supabase';
 import {
@@ -36,12 +39,15 @@ import {
   saveSessionTimeoutMinutes,
   revokeOtherSessions,
   revokeAllSessions,
+  getNotificationSettings,
+  saveNotificationSettings,
+  sendTestNotificationEmail,
   TIMEOUT_OPTIONS,
   type DashboardSectionConfig,
   type SectionId,
 } from '../../lib/settings';
 
-type Tab = 'account' | 'sections' | 'system';
+type Tab = 'account' | 'sections' | 'notifications' | 'system';
 
 interface PasswordStrength {
   score: number; // 0 to 4
@@ -118,6 +124,14 @@ export default function AdminSettings() {
   const [showResetSectionsModal, setShowResetSectionsModal] = useState(false);
   const [showClearCacheModal, setShowClearCacheModal] = useState(false);
 
+  // ── Notifications State ──────────────────────────────────
+  const [emailNotifsEnabled, setEmailNotifsEnabled] = useState<boolean>(() => getNotificationSettings().emailNotificationsEnabled);
+  const [adminNotifEmail, setAdminNotifEmail] = useState<string>(() => getNotificationSettings().adminNotificationEmail);
+  const [savingNotifs, setSavingNotifs] = useState(false);
+  const [notifSavedBanner, setNotifSavedBanner] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
   // ── Dashboard Sections State ──────────────────────────────
   const [sections, setSections] = useState<DashboardSectionConfig[]>(() => getSectionSettings());
   const [sectionSearch, setSectionSearch] = useState('');
@@ -132,21 +146,62 @@ export default function AdminSettings() {
       if (mounted && remoteSections) {
         setSections(remoteSections);
         setSessionTimeout(getSessionTimeoutMinutes());
+        const notifCfg = getNotificationSettings();
+        setEmailNotifsEnabled(notifCfg.emailNotificationsEnabled);
+        setAdminNotifEmail(notifCfg.adminNotificationEmail);
       }
     });
 
     const onUpdate = () => {
       setSections(getSectionSettings());
       setSessionTimeout(getSessionTimeoutMinutes());
+      const notifCfg = getNotificationSettings();
+      setEmailNotifsEnabled(notifCfg.emailNotificationsEnabled);
+      setAdminNotifEmail(notifCfg.adminNotificationEmail);
     };
     window.addEventListener('sections_config_updated', onUpdate);
+    window.addEventListener('notification_settings_updated', onUpdate);
     window.addEventListener('storage', onUpdate);
     return () => {
       mounted = false;
       window.removeEventListener('sections_config_updated', onUpdate);
+      window.removeEventListener('notification_settings_updated', onUpdate);
       window.removeEventListener('storage', onUpdate);
     };
   }, []);
+
+  async function handleSaveNotifications(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    setSavingNotifs(true);
+    setTestEmailResult(null);
+    try {
+      await saveNotificationSettings({
+        emailNotificationsEnabled: emailNotifsEnabled,
+        adminNotificationEmail: adminNotifEmail.trim(),
+      });
+      setNotifSavedBanner(true);
+      setTimeout(() => setNotifSavedBanner(false), 2500);
+    } finally {
+      setSavingNotifs(false);
+    }
+  }
+
+  async function handleSendTestEmail() {
+    if (!adminNotifEmail.trim()) {
+      setTestEmailResult({ type: 'err', text: 'Please enter a valid notification email address first.' });
+      return;
+    }
+    setSendingTestEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await sendTestNotificationEmail(adminNotifEmail.trim());
+      setTestEmailResult({ type: res.success ? 'ok' : 'err', text: res.message });
+    } catch (err) {
+      setTestEmailResult({ type: 'err', text: 'Failed to dispatch test notification email.' });
+    } finally {
+      setSendingTestEmail(false);
+    }
+  }
 
   const strength = useMemo(() => calculatePasswordStrength(newPassword), [newPassword]);
 
@@ -414,6 +469,18 @@ export default function AdminSettings() {
           <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/[0.08] text-white/70">
             {enabledCount}
           </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('notifications')}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+            activeTab === 'notifications'
+              ? 'border-cyan-400 text-cyan-400 bg-cyan-400/[0.03]'
+              : 'border-transparent text-white/45 hover:text-white hover:bg-white/[0.02]'
+          }`}
+        >
+          <Bell className="w-4 h-4" />
+          <span>Notifications</span>
         </button>
 
         <button
@@ -927,6 +994,139 @@ export default function AdminSettings() {
                 </button>
               </div>
             )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── TAB: Notifications ── */}
+      {activeTab === 'notifications' && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="space-y-6"
+        >
+          {notifSavedBanner && (
+            <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 flex items-center gap-3 text-sm">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              <span>Notification settings saved successfully.</span>
+            </div>
+          )}
+
+          {testEmailResult && (
+            <div
+              className={`p-4 rounded-xl border flex items-center gap-3 text-sm ${
+                testEmailResult.type === 'ok'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : 'bg-red-500/10 border-red-500/30 text-red-300'
+              }`}
+            >
+              {testEmailResult.type === 'ok' ? (
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              )}
+              <span>{testEmailResult.text}</span>
+            </div>
+          )}
+
+          <div className="card p-6 sm:p-7 space-y-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-white/[0.06]">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-display font-semibold text-white">New Message Notifications</h2>
+                <p className="text-xs text-white/40">Configure email alerts when visitors submit messages via your portfolio contact form.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveNotifications} className="space-y-6">
+              {/* Toggle Switch */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <div className="pr-4">
+                  <p className="text-sm font-medium text-white">Enable Email Notifications</p>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    Receive instant email notifications whenever a visitor sends a contact message.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={emailNotifsEnabled}
+                  onClick={() => setEmailNotifsEnabled(!emailNotifsEnabled)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    emailNotifsEnabled ? 'bg-cyan-500' : 'bg-white/15'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      emailNotifsEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Admin Notification Email */}
+              <div>
+                <label htmlFor="adminNotifEmail" className="block text-xs font-mono text-white/50 uppercase tracking-wider mb-2">
+                  Admin Notification Email
+                </label>
+                <div className="relative">
+                  <input
+                    id="adminNotifEmail"
+                    type="email"
+                    value={adminNotifEmail}
+                    onChange={e => setAdminNotifEmail(e.target.value)}
+                    placeholder="your-email@example.com"
+                    className="form-input pl-10"
+                    disabled={!emailNotifsEnabled}
+                  />
+                  <Mail className="w-4 h-4 text-white/30 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+                <p className="text-[11px] text-white/40 mt-2">
+                  Alerts containing visitor name, email, subject, message preview, and direct admin link will be sent here.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={savingNotifs}
+                  className="btn-primary text-xs py-2.5 px-5 disabled:opacity-50"
+                >
+                  {savingNotifs ? 'Saving…' : 'Save Notification Settings'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSendTestEmail}
+                  disabled={sendingTestEmail || !emailNotifsEnabled || !adminNotifEmail.trim()}
+                  className="btn-outline text-xs py-2.5 px-4 flex items-center gap-2 hover:border-cyan-500/40 hover:text-cyan-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{sendingTestEmail ? 'Sending Test…' : 'Send Test Email'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Email Preview Card */}
+          <div className="card p-6 border-white/[0.06] space-y-3 bg-[#0d1017]">
+            <p className="text-xs font-mono text-white/40 uppercase tracking-wider flex items-center gap-2">
+              <Mail className="w-3.5 h-3.5 text-cyan-400" />
+              Sample Notification Email Format
+            </p>
+            <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] text-xs font-mono space-y-2 text-white/70">
+              <p><span className="text-cyan-400 font-semibold">Subject:</span> [Portfolio] New Message: Cloud Infrastructure Inquiry</p>
+              <p><span className="text-white/40">From:</span> Alex Carter &lt;alex@cloudcorp.io&gt;</p>
+              <p><span className="text-white/40">Date:</span> {new Date().toLocaleString()}</p>
+              <div className="p-3 rounded bg-white/[0.03] border border-white/[0.04] text-white/80 my-2 whitespace-pre-wrap font-sans text-xs leading-relaxed">
+                "Hi, I saw your portfolio and would like to discuss a DevOps/Kubernetes role for our team..."
+              </div>
+              <p className="text-cyan-300/80">→ View and reply in Admin: /admin/messages</p>
+            </div>
           </div>
         </motion.div>
       )}

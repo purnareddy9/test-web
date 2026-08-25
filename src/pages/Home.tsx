@@ -23,6 +23,7 @@ import {
   getExperience,
   getCertifications,
   getActiveResume,
+  incrementProfileViews,
 } from '../lib/api';
 
 import {
@@ -62,6 +63,12 @@ export default function Home() {
 
   useEffect(() => {
     let mounted = true;
+
+    // Increment profile view count once per browser session
+    if (!sessionStorage.getItem('portfolio_view_counted')) {
+      sessionStorage.setItem('portfolio_view_counted', 'true');
+      incrementProfileViews().catch(() => {});
+    }
 
     const onSettingsUpdate = () => setSections(getSectionSettings());
     window.addEventListener('sections_config_updated', onSettingsUpdate);

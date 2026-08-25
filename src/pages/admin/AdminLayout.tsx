@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase, supabaseConfigured } from '../../lib/supabase';
 import { getSessionTimeoutMinutes } from '../../lib/settings';
+import { getUnreadMessageCount } from '../../lib/api';
 import type { Session } from '@supabase/supabase-js';
 
 const NAV = [
@@ -26,9 +27,17 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null | 'loading'>('loading');
   const [sideOpen, setSideOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [warningSeconds, setWarningSeconds] = useState<number | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const { pathname } = useLocation();
+
+  const loadUnread = useCallback(async () => {
+    try {
+      const count = await getUnreadMessageCount();
+      setUnreadCount(count);
+    } catch {}
+  }, []);
 
   useEffect(() => {
     document.title = 'Admin Panel';
@@ -126,6 +135,39 @@ export default function AdminLayout() {
     };
   }, [navigate]);
 
+  // ── Unread Messages Watcher ───────────────────────────────
+  useEffect(() => {
+    if (!session || session === 'loading') return;
+    loadUnread();
+
+    const onMessagesUpdate = () => loadUnread();
+    window.addEventListener('messages_updated', onMessagesUpdate);
+    window.addEventListener('storage', onMessagesUpdate);
+
+    let channel: any = null;
+    if (supabaseConfigured) {
+      channel = supabase
+        .channel('admin_layout_messages_badge')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'messages' },
+          () => loadUnread()
+        )
+        .subscribe();
+    }
+
+    const interval = setInterval(loadUnread, 12000);
+
+    return () => {
+      window.removeEventListener('messages_updated', onMessagesUpdate);
+      window.removeEventListener('storage', onMessagesUpdate);
+      clearInterval(interval);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [session, loadUnread]);
+
   // ── Inactivity Timeout Watchdog with Countdown Warning ──
   useEffect(() => {
     if (!session || session === 'loading') return;
@@ -162,7 +204,6 @@ export default function AdminLayout() {
       const remainingMs = totalTimeoutMs - elapsedMs;
 
       // Warning appears 2 minutes (120s) before logout, or in final 20% for shorter sessions
-      // e.g. for 5m session -> warns at 60s. For 10m+ session -> warns at 120s (2m).
       const warningWindowMs = Math.min(120000, Math.max(30000, Math.floor(totalTimeoutMs * 0.2)));
 
       if (remainingMs <= 0) {
@@ -282,17 +323,33 @@ export default function AdminLayout() {
         <nav className="flex-1 p-3 space-y-0.5" aria-label="Admin navigation">
           {NAV.map(({ href, icon: Icon, label }) => {
             const active = pathname === href;
+            const isMessages = href === '/admin/messages';
             return (
-              <Link key={href} to={href}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${active ? 'bg-cyan-400/10 text-cyan-400' : 'text-white/45 hover:text-white hover:bg-white/[0.04]'}`}>
+              <Link
+                key={href}
+                to={href}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  active
+                    ? 'bg-cyan-400/10 text-cyan-400'
+                    : 'text-white/45 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
                 <Icon className="w-4 h-4 flex-shrink-0" />
-                {label}
+                <span className="flex-1 truncate">{label}</span>
+                {isMessages && unreadCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
         <div className="p-3 border-t border-white/[0.06]">
-          <button onClick={logout} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white/35 hover:text-red-400 w-full transition-colors">
+          <button
+            onClick={logout}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white/35 hover:text-red-400 w-full transition-colors"
+          >
             <LogOut className="w-4 h-4" /> Sign out
           </button>
         </div>
@@ -302,35 +359,63 @@ export default function AdminLayout() {
       <AnimatePresence>
         {sideOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setSideOpen(false)}
-              className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-            <motion.aside initial={{ x: -224 }} animate={{ x: 0 }} exit={{ x: -224 }}
+              className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.aside
+              initial={{ x: -224 }}
+              animate={{ x: 0 }}
+              exit={{ x: -224 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="lg:hidden fixed top-0 bottom-0 left-0 z-50 w-56 bg-[#0d0d0d] border-r border-white/[0.06] flex flex-col">
+              className="lg:hidden fixed top-0 bottom-0 left-0 z-50 w-56 bg-[#0d0d0d] border-r border-white/[0.06] flex flex-col"
+            >
               <div className="px-5 py-5 border-b border-white/[0.06] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-cyan-400" />
                   <span className="font-display font-semibold text-white text-sm">Admin</span>
                 </div>
-                <button onClick={() => setSideOpen(false)} className="text-white/45 hover:text-white">
+                <button
+                  onClick={() => setSideOpen(false)}
+                  className="text-white/45 hover:text-white"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <nav className="flex-1 p-3 space-y-0.5" aria-label="Mobile admin navigation">
                 {NAV.map(({ href, icon: Icon, label }) => {
                   const active = pathname === href;
+                  const isMessages = href === '/admin/messages';
                   return (
-                    <Link key={href} to={href} onClick={() => setSideOpen(false)}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${active ? 'bg-cyan-400/10 text-cyan-400' : 'text-white/45 hover:text-white hover:bg-white/[0.04]'}`}>
+                    <Link
+                      key={href}
+                      to={href}
+                      onClick={() => setSideOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        active
+                          ? 'bg-cyan-400/10 text-cyan-400'
+                          : 'text-white/45 hover:text-white hover:bg-white/[0.04]'
+                      }`}
+                    >
                       <Icon className="w-4 h-4 flex-shrink-0" />
-                      {label}
+                      <span className="flex-1 truncate">{label}</span>
+                      {isMessages && unreadCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+                          {unreadCount}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
               </nav>
               <div className="p-3 border-t border-white/[0.06]">
-                <button onClick={logout} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white/35 hover:text-red-400 w-full">
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white/35 hover:text-red-400 w-full"
+                >
                   <LogOut className="w-4 h-4" /> Sign out
                 </button>
               </div>
@@ -342,11 +427,25 @@ export default function AdminLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar (mobile) */}
-        <div className="lg:hidden flex items-center gap-3 px-4 h-14 border-b border-white/[0.06]">
-          <button onClick={() => setSideOpen(true)} className="text-white/45 hover:text-white">
-            <Menu className="w-5 h-5" />
-          </button>
-          <span className="font-display font-semibold text-white text-sm">Admin</span>
+        <div className="lg:hidden flex items-center justify-between px-4 h-14 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSideOpen(true)} className="text-white/45 hover:text-white">
+              <Menu className="w-5 h-5" />
+            </button>
+            <span className="font-display font-semibold text-white text-sm">Admin</span>
+          </div>
+          {unreadCount > 0 && (
+            <Link
+              to="/admin/messages"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-mono bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+              </span>
+              <span>{unreadCount} unread</span>
+            </Link>
+          )}
         </div>
         <main className="flex-1 p-6 sm:p-8 overflow-auto">
           <Outlet />

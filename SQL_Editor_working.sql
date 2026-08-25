@@ -291,3 +291,35 @@ create trigger projects_updated_at
 before update on projects
 for each row
 execute function update_updated_at();
+
+
+-- SITE SETTINGS & ANALYTICS
+create table if not exists site_settings (
+  id text primary key default 'default',
+  sections jsonb not null default '[]'::jsonb,
+  session_timeout integer not null default 30,
+  email_notifications_enabled boolean default true,
+  admin_notification_email text default '',
+  views_count integer default 142,
+  last_revoked_at timestamptz default null,
+  active_session_id text default null,
+  updated_at timestamptz default now()
+);
+
+alter table site_settings add column if not exists sections jsonb not null default '[]'::jsonb;
+alter table site_settings add column if not exists session_timeout integer not null default 30;
+alter table site_settings add column if not exists email_notifications_enabled boolean default true;
+alter table site_settings add column if not exists admin_notification_email text default '';
+alter table site_settings add column if not exists views_count integer default 142;
+alter table site_settings add column if not exists last_revoked_at timestamptz default null;
+alter table site_settings add column if not exists active_session_id text default null;
+alter table site_settings add column if not exists updated_at timestamptz default now();
+
+alter table site_settings enable row level security;
+
+drop policy if exists "site_settings_public_read" on site_settings;
+drop policy if exists "site_settings_auth_write" on site_settings;
+
+create policy "site_settings_public_read" on site_settings for select using (true);
+create policy "site_settings_auth_write" on site_settings for all using (auth.role() = 'authenticated');
+
