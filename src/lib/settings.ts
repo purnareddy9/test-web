@@ -194,6 +194,19 @@ export async function fetchRemoteSettings(): Promise<DashboardSectionConfig[]> {
         .maybeSingle();
 
       if (!error && data) {
+        if (typeof data.session_timeout === 'number') {
+          localStorage.setItem(TIMEOUT_KEY, data.session_timeout.toString());
+        }
+        if (data.email_notifications_enabled !== undefined || data.admin_notification_email || data.email_api_key) {
+          const notifSettings: NotificationSettings = {
+            emailNotificationsEnabled: data.email_notifications_enabled !== false,
+            adminNotificationEmail: data.admin_notification_email || '',
+            emailApiKey: data.email_api_key || '',
+          };
+          localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifSettings));
+          window.dispatchEvent(new CustomEvent('notification_settings_updated', { detail: notifSettings }));
+        }
+
         if (Array.isArray(data.sections) && data.sections.length > 0) {
           const map = new Map(data.sections.map((s: any) => [s.id, s]));
           const merged = DEFAULT_SECTIONS.map((def) => {
@@ -204,18 +217,6 @@ export async function fetchRemoteSettings(): Promise<DashboardSectionConfig[]> {
           });
           const sorted = merged.sort((a, b) => a.order - b.order);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
-          if (typeof data.session_timeout === 'number') {
-            localStorage.setItem(TIMEOUT_KEY, data.session_timeout.toString());
-          }
-          if (data.email_notifications_enabled !== undefined || data.admin_notification_email || data.email_api_key) {
-            const notifSettings: NotificationSettings = {
-              emailNotificationsEnabled: data.email_notifications_enabled !== false,
-              adminNotificationEmail: data.admin_notification_email || '',
-              emailApiKey: data.email_api_key || '',
-            };
-            localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifSettings));
-            window.dispatchEvent(new CustomEvent('notification_settings_updated', { detail: notifSettings }));
-          }
           window.dispatchEvent(new CustomEvent('sections_config_updated', { detail: sorted }));
           return sorted;
         }
@@ -417,7 +418,30 @@ export async function sendRealEmailNotification(params: {
   message: string;
   isTest?: boolean;
 }): Promise<{ success: boolean; message: string }> {
-  const notifSettings = getNotificationSettings();
+  let notifSettings = getNotificationSettings();
+
+  // If local storage is empty (e.g. public visitor), fetch settings live from Supabase
+  if (supabaseConfigured && (!notifSettings.emailApiKey || !notifSettings.adminNotificationEmail)) {
+    try {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle();
+
+      if (data) {
+        notifSettings = {
+          emailNotificationsEnabled: data.email_notifications_enabled !== false,
+          adminNotificationEmail: data.admin_notification_email || notifSettings.adminNotificationEmail,
+          emailApiKey: data.email_api_key || notifSettings.emailApiKey,
+        };
+        localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifSettings));
+      }
+    } catch (e) {
+      console.warn('Could not fetch site_settings for notification dispatch:', e);
+    }
+  }
+
   const targetEmail = params.recipient || notifSettings.adminNotificationEmail;
 
   if (!targetEmail) {
