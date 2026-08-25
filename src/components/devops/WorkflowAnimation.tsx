@@ -59,8 +59,7 @@ export default function WorkflowAnimation() {
           subtitle="The end-to-end journey of a deployment from a developer's commit to running in production." />
 
         <FadeUp>
-          {/* Fixed height card — no layout shift during animation */}
-          <div className="card p-6 sm:p-8" style={{ minHeight: 320 }}>
+          <div className="card p-5 sm:p-6 pb-6 sm:pb-7">
             <div className="flex justify-between items-center mb-6">
               <span className="text-xs font-mono text-white/30 uppercase tracking-widest">
                 {running ? 'Deploying…' : activeStep >= 0 ? 'Complete ✓' : 'Ready'}
