@@ -207,10 +207,11 @@ export async function fetchRemoteSettings(): Promise<DashboardSectionConfig[]> {
           if (typeof data.session_timeout === 'number') {
             localStorage.setItem(TIMEOUT_KEY, data.session_timeout.toString());
           }
-          if (data.email_notifications_enabled !== undefined || data.admin_notification_email) {
+          if (data.email_notifications_enabled !== undefined || data.admin_notification_email || data.email_api_key) {
             const notifSettings: NotificationSettings = {
               emailNotificationsEnabled: data.email_notifications_enabled !== false,
               adminNotificationEmail: data.admin_notification_email || '',
+              emailApiKey: data.email_api_key || '',
             };
             localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifSettings));
             window.dispatchEvent(new CustomEvent('notification_settings_updated', { detail: notifSettings }));
@@ -399,6 +400,7 @@ export async function saveNotificationSettings(settings: NotificationSettings): 
         session_timeout: timeout,
         email_notifications_enabled: settings.emailNotificationsEnabled,
         admin_notification_email: settings.adminNotificationEmail,
+        email_api_key: settings.emailApiKey || '',
         updated_at: new Date().toISOString(),
       });
     }

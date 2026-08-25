@@ -201,25 +201,23 @@ export async function submitContact(form: { name: string; email: string; subject
     const updated = [newMsg, ...current];
     localStorage.setItem('local_demo_messages', JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg, unreadCount: updated.filter(m => m.status === 'new').length } }));
-    return { success: true };
+  } else {
+    const { error } = await supabase.from('messages').insert([{ ...form, status: 'new' }]);
+    if (error) return { success: false, error: error.message };
+    window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg, unreadCount: 1 } }));
   }
 
-  const { error } = await supabase.from('messages').insert([{ ...form, status: 'new' }]);
-  if (error) return { success: false, error: error.message };
-
-  window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg, unreadCount: 1 } }));
-
-  // Email Notification Trigger
+  // Email Notification Trigger (Runs reliably for both modes)
   try {
     const notifSettings = getNotificationSettings();
     if (notifSettings.emailNotificationsEnabled && notifSettings.adminNotificationEmail) {
-      sendRealEmailNotification({
+      await sendRealEmailNotification({
         recipient: notifSettings.adminNotificationEmail,
         name: form.name,
         email: form.email,
         subject: form.subject,
         message: form.message,
-      }).catch(e => console.warn('Email dispatch notice:', e));
+      });
     }
   } catch (err) {
     console.warn('Could not trigger notification email:', err);

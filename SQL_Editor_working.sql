@@ -309,6 +309,7 @@ create table if not exists site_settings (
   session_timeout integer not null default 30,
   email_notifications_enabled boolean default true,
   admin_notification_email text default '',
+  email_api_key text default '',
   views_count integer default 142,
   last_revoked_at timestamptz default null,
   active_session_id text default null,
@@ -319,6 +320,7 @@ alter table site_settings add column if not exists sections jsonb not null defau
 alter table site_settings add column if not exists session_timeout integer not null default 30;
 alter table site_settings add column if not exists email_notifications_enabled boolean default true;
 alter table site_settings add column if not exists admin_notification_email text default '';
+alter table site_settings add column if not exists email_api_key text default '';
 alter table site_settings add column if not exists views_count integer default 142;
 alter table site_settings add column if not exists last_revoked_at timestamptz default null;
 alter table site_settings add column if not exists active_session_id text default null;
