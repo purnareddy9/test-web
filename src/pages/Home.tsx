@@ -235,31 +235,23 @@ export default function Home() {
         {/* Base dark canvas */}
         <div className="absolute inset-0 bg-[#08090a]" />
 
-        {/* Upper-right atmospheric cyan/teal glow (clearly visible, ~35% intensity) */}
+        {/* Right side: dark muted teal/cyan radial glow (positioned ~38-45% vertically, 15% reduced intensity) */}
         <div
-          className="absolute -top-32 -right-32 w-[800px] h-[800px] rounded-full blur-[110px] pointer-events-none opacity-85"
+          className="absolute top-[35%] -right-32 w-[820px] h-[820px] -translate-y-1/2 rounded-full blur-[140px] pointer-events-none"
           style={{
-            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.28) 0%, rgba(20, 184, 166, 0.18) 45%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(13, 148, 136, 0.20) 0%, rgba(8, 145, 178, 0.14) 40%, rgba(6, 182, 212, 0.07) 60%, transparent 75%)',
           }}
         />
 
-        {/* Lower-left atmospheric deep blue glow (clearly visible, ~35% intensity) */}
+        {/* Left side: subtle deep navy/blue radial glow (positioned ~60-65% vertically, 15-25% from left) */}
         <div
-          className="absolute -bottom-32 -left-32 w-[850px] h-[850px] rounded-full blur-[120px] pointer-events-none opacity-85"
+          className="absolute top-[62%] -left-32 w-[850px] h-[850px] -translate-y-1/2 rounded-full blur-[145px] pointer-events-none"
           style={{
-            background: 'radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(29, 78, 216, 0.16) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(30, 64, 175, 0.24) 0%, rgba(29, 78, 216, 0.16) 45%, rgba(37, 99, 235, 0.08) 65%, transparent 75%)',
           }}
         />
 
-        {/* Center-right subtle cyan diffusion */}
-        <div
-          className="absolute top-1/2 -right-40 w-[650px] h-[650px] rounded-full blur-[130px] pointer-events-none opacity-60"
-          style={{
-            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 65%)',
-          }}
-        />
-
-        {/* Crisp grid pattern clearly visible over the gradient */}
+        {/* Crisp grid pattern sitting subtly above the gradient */}
         <div
           className="absolute inset-0 opacity-[0.035]"
           style={{
