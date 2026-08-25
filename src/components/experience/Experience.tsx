@@ -66,7 +66,7 @@ function ExperienceItem({ item, index }: { item: Experience; index: number }) {
 
 export default function Experience({ experience }: { experience: Experience[] }) {
   return (
-    <section id="experience" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section id="experience" className="py-16 lg:py-20 border-t border-white/[0.05] scroll-mt-16">
       <div className="max-w-4xl mx-auto px-6">
         <SectionHeader label="Experience" title="Career Timeline" />
         <div className="relative">

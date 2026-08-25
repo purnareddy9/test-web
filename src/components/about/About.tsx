@@ -12,7 +12,7 @@ export default function About({ profile }: { profile: Profile }) {
   ];
 
   return (
-    <section id="about" className="py-24 lg:py-32" aria-labelledby="about-heading">
+    <section id="about" className="py-16 lg:py-20 scroll-mt-16" aria-labelledby="about-heading">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="About" title="About Me" />
 

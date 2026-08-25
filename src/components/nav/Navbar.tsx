@@ -41,8 +41,9 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
   }, [name]);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 40);
+    const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', fn, { passive: true });
+    fn(); // Check immediate scroll position on mount
 
     const onSettingsUpdate = () => setSections(getSectionSettings());
     window.addEventListener('sections_config_updated', onSettingsUpdate);
@@ -67,7 +68,11 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
   const displayName = (profileName || 'alex').trim().split(' ')[0].toLowerCase();
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-white/[0.06]' : 'bg-transparent'}`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      scrolled
+        ? 'bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/[0.08] shadow-lg shadow-black/30'
+        : 'bg-[#0a0a0a]/75 backdrop-blur-sm border-b border-white/[0.04]'
+    }`}>
       <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between" aria-label="Main navigation">
         {/* Logo */}
         <Link to="/" className="font-display font-bold text-white text-lg tracking-tight hover:text-cyan-400 transition-colors">

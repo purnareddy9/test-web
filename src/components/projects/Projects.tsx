@@ -103,7 +103,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
 
 export default function Projects({ projects }: { projects: Project[] }) {
   return (
-    <section id="projects" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section id="projects" className="py-16 lg:py-20 border-t border-white/[0.05] scroll-mt-16">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Work" title="Featured Projects"
           subtitle="Infrastructure and platform projects that show how I think about reliability, automation, and scale." />
