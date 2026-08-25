@@ -30,7 +30,7 @@ export default function DevOpsLifecycle() {
   const cur = STAGES[active];
 
   return (
-    <section ref={sectionRef} id="lifecycle" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section ref={sectionRef} id="lifecycle" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Methodology" title="DevOps Lifecycle"
           subtitle="The continuous loop that drives reliable, fast software delivery." />

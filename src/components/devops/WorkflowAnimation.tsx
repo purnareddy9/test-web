@@ -53,7 +53,7 @@ export default function WorkflowAnimation() {
   const pct = activeStep < 0 ? 0 : Math.round(((activeStep + 1) / FLOW_STEPS.length) * 100);
 
   return (
-    <section ref={sectionRef} id="workflow" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section ref={sectionRef} id="workflow" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Workflow" title="Code to Production"
           subtitle="The end-to-end journey of a deployment from a developer's commit to running in production." />

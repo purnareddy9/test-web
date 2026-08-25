@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useLayoutEffect } from 'react';
 import Navbar from '../components/nav/Navbar';
 import Footer from '../components/layout/Footer';
 import Hero from '../components/hero/Hero';
@@ -160,6 +160,21 @@ export default function Home() {
       }
     }
   }, [profile]);
+
+  useLayoutEffect(() => {
+    if (!loading && window.location.hash) {
+      const id = window.location.hash.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'auto' });
+      } else {
+        // Fallback for late rendering
+        requestAnimationFrame(() => {
+          document.getElementById(id)?.scrollIntoView({ behavior: 'auto' });
+        });
+      }
+    }
+  }, [loading]);
 
   /*
    * Do not render fallback data while Supabase is still loading.

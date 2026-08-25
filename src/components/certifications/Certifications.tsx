@@ -14,7 +14,7 @@ function isExpired(d?: string) { return d ? new Date(d) < new Date() : false; }
 
 export default function Certifications({ certifications }: { certifications: Certification[] }) {
   return (
-    <section id="certifications" className="py-16 lg:py-20 border-t border-white/[0.05] scroll-mt-16">
+    <section id="certifications" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Credentials" title="Certifications"
           subtitle="Industry certifications validating expertise in cloud and DevOps technologies." />

@@ -62,7 +62,12 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
   const handleNav = useCallback((href: string) => {
     setOpen(false);
     const id = href.replace('/#', '');
-    if (pathname === '/') { scrollTo(id); }
+    if (pathname === '/') {
+      try {
+        window.history.pushState(null, '', `/#${id}`);
+      } catch {}
+      scrollTo(id);
+    }
   }, [pathname]);
 
   const displayName = (profileName || 'alex').trim().split(' ')[0].toLowerCase();

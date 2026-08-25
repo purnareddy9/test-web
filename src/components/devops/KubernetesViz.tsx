@@ -107,7 +107,7 @@ export default function KubernetesViz() {
   const HEAL_STEPS = ['', 'Pod failure detected', 'K8s health check fails', 'Scheduler creates replacement', 'New pod starting…', 'Pod running ✓ — self-healed'];
 
   return (
-    <section ref={sectionRef} id="kubernetes" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section ref={sectionRef} id="kubernetes" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Containers" title="Kubernetes Cluster"
           subtitle="Live view of a Kubernetes deployment — pods, health checks, and self-healing in action." />

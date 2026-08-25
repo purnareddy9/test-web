@@ -388,7 +388,7 @@ export default function PodLifecycle() {
   const currentStage = activeIndex >= 0 && activeIndex < STAGES.length ? STAGES[activeIndex] : null;
 
   return (
-    <section ref={sectionRef} id="pod-lifecycle" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section ref={sectionRef} id="pod-lifecycle" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader
           label="Kubernetes"

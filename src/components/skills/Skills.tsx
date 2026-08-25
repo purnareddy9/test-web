@@ -86,7 +86,7 @@ export default function Skills({ skills }: { skills: Skill[] }) {
   const available = CATEGORIES.filter(c => skills.some(s => s.category === c.key));
 
   return (
-    <section id="skills" className="py-16 lg:py-20 scroll-mt-16" aria-labelledby="skills-heading">
+    <section id="skills" className="pt-16 pb-24 lg:pt-20 lg:pb-28 scroll-mt-36" aria-labelledby="skills-heading">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Skills" title="Engineering Toolkit"
           subtitle="Technologies and platforms I use to build, automate, and operate production infrastructure." />

@@ -82,7 +82,7 @@ export default function CICDPipeline() {
   const runningIdx = statuses.findIndex(s => s === 'running');
 
   return (
-    <section ref={sectionRef} id="pipeline" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section ref={sectionRef} id="pipeline" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="CI/CD" title="Deployment Pipeline"
           subtitle="How code moves from a developer's laptop to production in under 15 minutes." />

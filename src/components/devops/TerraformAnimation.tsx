@@ -87,7 +87,7 @@ export default function TerraformAnimation() {
   }, [visibleLines]);
 
   return (
-    <section ref={sectionRef} id="terraform" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section ref={sectionRef} id="terraform" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Infrastructure as Code" title="Terraform in Action"
           subtitle="Watch infrastructure provision itself from code — reproducible, versioned, and auditable." />

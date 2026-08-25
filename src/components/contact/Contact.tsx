@@ -102,7 +102,7 @@ export default function Contact({ profile }: { profile: Profile }) {
     `form-input ${err ? '!border-red-500/50 focus:!ring-red-500/30' : ''}`;
 
   return (
-    <section id="contact" className="py-16 lg:py-20 border-t border-white/[0.05] scroll-mt-16">
+    <section id="contact" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Contact" title="Let's Talk"
           subtitle="Have an opportunity or infrastructure challenge? I'd love to hear about it." />

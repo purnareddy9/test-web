@@ -87,7 +87,7 @@ export default function MonitoringDashboard() {
   const allOk = metrics.cpu < 75 && metrics.memory < 70;
 
   return (
-    <section ref={sectionRef} id="monitoring" className="py-24 lg:py-32 border-t border-white/[0.05]">
+    <section ref={sectionRef} id="monitoring" className="pt-16 pb-24 lg:pt-20 lg:pb-28 border-t border-white/[0.05] scroll-mt-36">
       <div className="max-w-6xl mx-auto px-6">
         <SectionHeader label="Observability" title="Monitoring Dashboard"
           subtitle="Real-time metrics as they'd appear in Grafana — updated every 2 seconds." />
