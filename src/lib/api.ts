@@ -199,14 +199,21 @@ const BLOCKED_LOCAL_PARTS = new Set([
   'test', 'fake', 'asdf', 'qwerty', '123456', 'admin', 'noreply', 'no-reply', 'null', 'undefined',
 ]);
 
+function sanitizeText(str: string): string {
+  return str.replace(/<[^>]*>?/gm, '').trim();
+}
+
 export function validateContactPayload(form: { name?: string; email?: string; subject?: string; message?: string }): string | null {
-  const name = form.name?.trim() || '';
-  const email = form.email?.trim().toLowerCase() || '';
-  const subject = form.subject?.trim() || '';
-  const message = form.message?.trim() || '';
+  const name = sanitizeText(form.name || '');
+  const email = (form.email || '').trim().toLowerCase();
+  const subject = sanitizeText(form.subject || '');
+  const message = sanitizeText(form.message || '');
 
   if (name.length < 2) return 'Please provide your full name.';
+  if (name.length > 100) return 'Name cannot exceed 100 characters.';
+
   if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return 'Invalid email address.';
+  if (email.length > 255) return 'Email cannot exceed 255 characters.';
 
   const [localPart, domain] = email.split('@');
   if (!domain || BLOCKED_DOMAINS.has(domain) || domain.endsWith('.test') || domain.endsWith('.example') || domain.endsWith('.invalid')) {
@@ -217,24 +224,42 @@ export function validateContactPayload(form: { name?: string; email?: string; su
   }
 
   if (subject.length < 3) return 'Subject must be at least 3 characters.';
+  if (subject.length > 200) return 'Subject cannot exceed 200 characters.';
+
   if (message.length < 20) return 'Message must be at least 20 characters.';
+  if (message.length > 3000) return 'Message cannot exceed 3,000 characters.';
 
   return null;
 }
 
+const LAST_SUBMISSION_KEY = 'portfolio_last_contact_ts';
+
 export async function submitContact(form: { name: string; email: string; subject: string; message: string }): Promise<{ success: boolean; error?: string }> {
-  // 1. Backend payload validation (Prevents DevTools inspect / bypass)
+  // 1. Anti-flood Cooldown Protection (Prevents automated console loops / spamming)
+  try {
+    const lastSub = Number(sessionStorage.getItem(LAST_SUBMISSION_KEY) || '0');
+    const now = Date.now();
+    if (now - lastSub < 8000) {
+      return { success: false, error: 'Please wait a few seconds before sending another message.' };
+    }
+  } catch {}
+
+  // 2. Backend payload validation & sanitization (Prevents DevTools inspect / bypass)
   const validationError = validateContactPayload(form);
   if (validationError) {
     return { success: false, error: validationError };
   }
 
   const cleanForm = {
-    name: form.name.trim(),
+    name: sanitizeText(form.name),
     email: form.email.trim().toLowerCase(),
-    subject: form.subject.trim(),
-    message: form.message.trim(),
+    subject: sanitizeText(form.subject),
+    message: sanitizeText(form.message),
   };
+
+  try {
+    sessionStorage.setItem(LAST_SUBMISSION_KEY, Date.now().toString());
+  } catch {}
 
   const newMsg: Message = {
     id: 'msg_' + Math.random().toString(36).substring(2, 9),
