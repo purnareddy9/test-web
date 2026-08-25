@@ -79,7 +79,12 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
       try {
         window.history.pushState(null, '', '/');
       } catch {}
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const heroEl = document.getElementById('hero');
+      if (heroEl) {
+        heroEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      }
     } else {
       navigate('/');
     }

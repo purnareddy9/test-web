@@ -155,7 +155,7 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
   const goAbout    = () => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <section className="relative min-h-[calc(100vh-4rem)] flex flex-col justify-center pt-16 pb-10" aria-label="Introduction">
+    <section id="hero" className="relative min-h-[calc(100vh-4rem)] flex flex-col justify-center pt-16 pb-10 scroll-mt-20" aria-label="Introduction">
       {/* Subtle grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.02]"
         style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '60px 60px' }}
