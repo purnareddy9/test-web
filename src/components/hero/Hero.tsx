@@ -5,28 +5,49 @@ import type { Profile, Resume } from '../../types';
 
 const DEFAULT_ROLES = ['DevOps Engineer', 'Cloud Engineer', 'Platform Engineer', 'Site Reliability Engineer'];
 
-function useTyping(strings: string[], speed = 70, pause = 2000) {
-  const [text, setText] = useState('');
-  const [si, setSi] = useState(0);
-  const [ci, setCi] = useState(0);
-  const [deleting, setDeleting] = useState(false);
+function useTyping(strings: string[], speed = 70, pause = 2200) {
+  const [text, setText] = useState(() => strings[0] || 'DevOps Engineer');
+  const stringsRef = useRef(strings);
+  const stateRef = useRef({ si: 0, ci: (strings[0] || 'DevOps Engineer').length, deleting: false });
 
   useEffect(() => {
-    const cur = strings[si];
-    let timer: ReturnType<typeof setTimeout>;
-    if (!deleting && ci < cur.length) {
-      timer = setTimeout(() => setCi(c => c + 1), speed);
-    } else if (!deleting && ci === cur.length) {
-      timer = setTimeout(() => setDeleting(true), pause);
-    } else if (deleting && ci > 0) {
-      timer = setTimeout(() => setCi(c => c - 1), speed / 2);
-    } else {
-      setDeleting(false);
-      setSi(i => (i + 1) % strings.length);
+    if (strings.length > 0) {
+      stringsRef.current = strings;
     }
-    setText(cur.slice(0, ci));
+  }, [strings]);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    function tick() {
+      const list = stringsRef.current.length > 0 ? stringsRef.current : DEFAULT_ROLES;
+      const { si, ci, deleting } = stateRef.current;
+      const cur = list[si] || list[0] || 'DevOps Engineer';
+
+      if (!deleting && ci < cur.length) {
+        stateRef.current.ci = ci + 1;
+        setText(cur.slice(0, ci + 1));
+        timer = setTimeout(tick, speed);
+      } else if (!deleting && ci >= cur.length) {
+        timer = setTimeout(() => {
+          stateRef.current.deleting = true;
+          tick();
+        }, pause);
+      } else if (deleting && ci > 0) {
+        stateRef.current.ci = ci - 1;
+        setText(cur.slice(0, ci - 1));
+        timer = setTimeout(tick, speed / 2);
+      } else {
+        stateRef.current.deleting = false;
+        stateRef.current.si = (si + 1) % list.length;
+        stateRef.current.ci = 0;
+        timer = setTimeout(tick, 300);
+      }
+    }
+
+    timer = setTimeout(tick, pause);
     return () => clearTimeout(timer);
-  }, [ci, deleting, si, strings, speed, pause]);
+  }, [speed, pause]);
 
   return text;
 }
@@ -54,7 +75,7 @@ const TERMINAL_LINES = [
 ];
 
 function Terminal() {
-  const [visibleCount, setVisibleCount] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(1);
   const [running, setRunning] = useState(true);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -79,9 +100,9 @@ function Terminal() {
   }, [visibleCount]);
 
   return (
-    <div className="terminal w-full max-w-lg">
+    <div className="terminal w-full max-w-lg min-h-[380px] flex flex-col">
       {/* Header bar */}
-      <div className="terminal-header">
+      <div className="terminal-header flex-shrink-0">
         <span className="terminal-dot bg-red-500/70" />
         <span className="terminal-dot bg-yellow-500/70" />
         <span className="terminal-dot bg-green-500/70" />
@@ -94,7 +115,7 @@ function Terminal() {
       </div>
 
       {/* Fixed height body — scrolls internally, never moves the page */}
-      <div ref={bodyRef} className="p-4 text-xs leading-relaxed overflow-y-auto space-y-0.5" style={{ height: 320 }}>
+      <div ref={bodyRef} className="p-4 text-xs leading-relaxed overflow-y-auto space-y-0.5 flex-1" style={{ height: 320, minHeight: 320 }}>
         {TERMINAL_LINES.slice(0, visibleCount).map((line, i) => (
           <div key={i}>
             {line.type === 'cmd' && (
@@ -134,18 +155,18 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
   const goAbout    = () => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <section className="relative min-h-screen flex items-center pt-16" aria-label="Introduction">
+    <section className="relative min-h-[calc(100vh-4rem)] flex flex-col justify-center pt-16 pb-10" aria-label="Introduction">
       {/* Subtle grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.02]"
         style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '60px 60px' }}
         aria-hidden="true" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 w-full">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 pt-8 pb-10 lg:pt-10 lg:pb-12 w-full">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left — text */}
           <div>
             <FadeUp immediate delay={0.05}>
-              <p className="text-white/35 text-sm font-mono mb-5">
+              <p className="text-white/35 text-sm font-mono mb-4">
                 <span className="text-cyan-400">~/</span> hello, world
               </p>
             </FadeUp>
@@ -158,7 +179,7 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
             </FadeUp>
 
             <FadeUp immediate delay={0.2}>
-              <div className="h-8 flex items-center gap-2 mb-6" aria-live="polite" aria-label={`Current role: ${typed}`}>
+              <div className="h-8 flex items-center gap-2 mb-5" aria-live="polite" aria-label={`Current role: ${typed}`}>
                 <span className="text-white/30 font-mono text-sm select-none">{'>'}</span>
                 <span className="text-lg font-mono text-white/75">
                   {typed}<span className="animate-cursor-blink text-cyan-400 ml-0.5">█</span>
@@ -168,14 +189,14 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
 
             {profile.bio && (
               <FadeUp immediate delay={0.28}>
-                <p className="text-white/45 text-base leading-relaxed mb-8 max-w-md">
+                <p className="text-white/45 text-base leading-relaxed mb-7 max-w-md">
                   {profile.bio.split('\n').map(s => s.trim()).filter(Boolean)[0]}
                 </p>
               </FadeUp>
             )}
 
             <FadeUp immediate delay={0.35}>
-              <div className="flex flex-wrap gap-3 mb-9">
+              <div className="flex flex-wrap gap-3 mb-8">
                 <button onClick={goProjects} className="btn-primary">
                   <ExternalLink className="w-4 h-4" /> View Projects
                 </button>
@@ -217,7 +238,7 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
         </div>
 
         {/* Scroll cue — CSS animation to avoid layout recalculation */}
-        <div className="flex justify-center mt-20">
+        <div className="flex justify-center mt-8">
           <button onClick={goAbout}
             className="text-white/20 hover:text-white/50 transition-colors animate-bounce"
             style={{ animationDuration: '2s' }}

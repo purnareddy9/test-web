@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSectionSettings, type DashboardSectionConfig } from '../../lib/settings';
@@ -59,6 +59,8 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
   const enabledSectionIds = new Set(sections.filter(s => s.enabled).map(s => s.id));
   const navLinks = ALL_NAV_LINKS.filter(link => enabledSectionIds.has(link.id as any));
 
+  const navigate = useNavigate();
+
   const handleNav = useCallback((href: string) => {
     setOpen(false);
     const id = href.replace('/#', '');
@@ -70,6 +72,19 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
     }
   }, [pathname]);
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setOpen(false);
+    if (pathname === '/') {
+      try {
+        window.history.pushState(null, '', '/');
+      } catch {}
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate('/');
+    }
+  };
+
   const displayName = (profileName || 'alex').trim().split(' ')[0].toLowerCase();
 
   return (
@@ -80,7 +95,7 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
     }`}>
       <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between" aria-label="Main navigation">
         {/* Logo */}
-        <Link to="/" className="font-display font-bold text-white text-lg tracking-tight hover:text-cyan-400 transition-colors">
+        <Link to="/" onClick={handleLogoClick} className="font-display font-bold text-white text-lg tracking-tight hover:text-cyan-400 transition-colors">
           {displayName}<span className="text-cyan-400">.</span>
         </Link>
 

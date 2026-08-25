@@ -1,4 +1,5 @@
 import { useEffect, useState, useLayoutEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/nav/Navbar';
 import Footer from '../components/layout/Footer';
 import Hero from '../components/hero/Hero';
@@ -50,16 +51,39 @@ import {
   fallbackCertifications,
 } from '../data/fallback';
 
+function getCached<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed) return parsed;
+    }
+  } catch {}
+  return fallback;
+}
+
 export default function Home() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [projects, setProjects] = useState<Project[] | null>(null);
-  const [skills, setSkills] = useState<Skill[] | null>(null);
-  const [exp, setExp] = useState<ExpType[] | null>(null);
-  const [certs, setCerts] = useState<Certification[] | null>(null);
-  const [resume, setResume] = useState<Resume | null>(null);
+  const [profile, setProfile] = useState<Profile>(() => getCached('portfolio_cached_profile', fallbackProfile));
+  const [projects, setProjects] = useState<Project[]>(() => getCached('portfolio_cached_projects', fallbackProjects));
+  const [skills, setSkills] = useState<Skill[]>(() => getCached('portfolio_cached_skills', fallbackSkills));
+  const [exp, setExp] = useState<ExpType[]>(() => getCached('portfolio_cached_exp', fallbackExperience));
+  const [certs, setCerts] = useState<Certification[]>(() => getCached('portfolio_cached_certs', fallbackCertifications));
+  const [resume, setResume] = useState<Resume | null>(() => getCached('portfolio_cached_resume', null));
   const [sections, setSections] = useState<DashboardSectionConfig[]>(getSectionSettings);
 
-  const [loading, setLoading] = useState(true);
+  const [showInitialLoader, setShowInitialLoader] = useState(() => {
+    return !sessionStorage.getItem('portfolio_visited');
+  });
+
+  useEffect(() => {
+    if (showInitialLoader) {
+      const timer = setTimeout(() => {
+        setShowInitialLoader(false);
+        try { sessionStorage.setItem('portfolio_visited', 'true'); } catch {}
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [showInitialLoader]);
 
   useEffect(() => {
     let mounted = true;
@@ -96,29 +120,35 @@ export default function Home() {
 
         if (!mounted) return;
 
-        setProfile(profileData);
-        setProjects(projectsData);
-        setSkills(skillsData);
-        setExp(experienceData);
-        setCerts(certificationsData);
-        setResume(resumeData);
-        if (sectionsData) setSections(sectionsData);
-      } catch (error) {
-        console.error('Portfolio data loading failed:', error);
-
-        if (!mounted) return;
-
-        // Use meaningful fallback portfolio data if Supabase fails.
-        setProfile(fallbackProfile);
-        setProjects(fallbackProjects);
-        setSkills(fallbackSkills);
-        setExp(fallbackExperience);
-        setCerts(fallbackCertifications);
-        setResume(null);
-      } finally {
-        if (mounted) {
-          setLoading(false);
+        if (profileData) {
+          setProfile(profileData);
+          try { localStorage.setItem('portfolio_cached_profile', JSON.stringify(profileData)); } catch {}
         }
+        if (projectsData?.length) {
+          setProjects(projectsData);
+          try { localStorage.setItem('portfolio_cached_projects', JSON.stringify(projectsData)); } catch {}
+        }
+        if (skillsData?.length) {
+          setSkills(skillsData);
+          try { localStorage.setItem('portfolio_cached_skills', JSON.stringify(skillsData)); } catch {}
+        }
+        if (experienceData?.length) {
+          setExp(experienceData);
+          try { localStorage.setItem('portfolio_cached_exp', JSON.stringify(experienceData)); } catch {}
+        }
+        if (certificationsData?.length) {
+          setCerts(certificationsData);
+          try { localStorage.setItem('portfolio_cached_certs', JSON.stringify(certificationsData)); } catch {}
+        }
+        if (resumeData !== undefined) {
+          setResume(resumeData);
+          try { localStorage.setItem('portfolio_cached_resume', JSON.stringify(resumeData)); } catch {}
+        }
+        if (sectionsData) {
+          setSections(sectionsData);
+        }
+      } catch (error) {
+        console.error('Background sync failed:', error);
       }
     }
 
@@ -162,45 +192,24 @@ export default function Home() {
   }, [profile]);
 
   useLayoutEffect(() => {
-    if (!loading && window.location.hash) {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+
+    if (window.location.hash) {
       const id = window.location.hash.replace('#', '');
       const el = document.getElementById(id);
       if (el) {
         el.scrollIntoView({ behavior: 'auto' });
       } else {
-        // Fallback for late rendering
         requestAnimationFrame(() => {
           document.getElementById(id)?.scrollIntoView({ behavior: 'auto' });
         });
       }
+    } else {
+      window.scrollTo(0, 0);
     }
-  }, [loading]);
-
-  /*
-   * Do not render fallback data while Supabase is still loading.
-   * This prevents fallback values and their animations from appearing
-   * before the real database values arrive.
-   */
-  if (
-    loading ||
-    !profile ||
-    !projects ||
-    !skills ||
-    !exp ||
-    !certs
-  ) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin mx-auto mb-4" />
-
-          <p className="text-white/40 text-sm font-mono">
-            Loading portfolio...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   const sectionComponentMap: Record<SectionId, React.ReactNode> = {
     hero: <Hero profile={profile} resume={resume} />,
@@ -221,6 +230,28 @@ export default function Home() {
 
   return (
     <>
+      <AnimatePresence>
+        {showInitialLoader && (
+          <motion.div
+            key="initial-loader"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.55, ease: 'easeInOut' } }}
+            className="fixed inset-0 z-[100] bg-[#0a0a0a] flex flex-col items-center justify-center pointer-events-none"
+          >
+            <div className="relative mb-6">
+              <div className="w-12 h-12 rounded-full border-2 border-cyan-400/20 border-t-cyan-400 animate-spin" />
+              <div className="absolute inset-0 rounded-full bg-cyan-400/10 animate-ping opacity-25" />
+            </div>
+            <p className="text-white font-display font-bold text-xl tracking-tight mb-2">
+              {(profile?.name || 'poorna').split(' ')[0]}<span className="text-cyan-400">.</span>
+            </p>
+            <p className="text-white/40 text-xs font-mono tracking-wide">
+              ~/ initializing portfolio...
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Navbar resumeUrl={resume?.file_url} name={profile?.name} />
 
       <main>
