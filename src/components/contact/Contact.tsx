@@ -9,14 +9,70 @@ type Form   = { name: string; email: string; subject: string; message: string };
 type Errors = Partial<Form>;
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
+const BLOCKED_DOMAINS = new Set([
+  'example.com',
+  'example.org',
+  'example.net',
+  'test.com',
+  'sample.com',
+  'invalid.com',
+  'fake.com',
+  'domain.com',
+  'tempmail.com',
+  'mailinator.com',
+  '10minutemail.com',
+  'guerrillamail.com',
+  'throwawaymail.com',
+  'trashmail.com',
+  'yopmail.com',
+  'sharklasers.com',
+  'dispostable.com',
+  'getairmail.com',
+  'maildrop.cc',
+  'mailcatch.com',
+  'nada.ltd',
+]);
+
+const BLOCKED_LOCAL_PARTS = new Set([
+  'test',
+  'fake',
+  'asdf',
+  'qwerty',
+  '123456',
+  'admin',
+  'noreply',
+  'no-reply',
+  'null',
+  'undefined',
+]);
+
 function validate(f: Form): Errors {
   const e: Errors = {};
-  if (!f.name.trim())    e.name    = 'Name is required.';
-  if (!f.email.trim())   e.email   = 'Email is required.';
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Invalid email.';
+  if (!f.name.trim()) e.name = 'Name is required.';
+  else if (f.name.trim().length < 2) e.name = 'Please provide your full name.';
+
+  const email = f.email.trim().toLowerCase();
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  if (!email) {
+    e.email = 'Email address is required.';
+  } else if (!emailRegex.test(email)) {
+    e.email = 'Please enter a valid email format (e.g. name@company.com or name@gmail.com).';
+  } else {
+    const [localPart, domain] = email.split('@');
+    if (!domain || BLOCKED_DOMAINS.has(domain) || domain.endsWith('.test') || domain.endsWith('.example') || domain.endsWith('.invalid')) {
+      e.email = 'Please provide a valid work, corporate, or personal email address (dummy/disposable domains are not allowed).';
+    } else if (BLOCKED_LOCAL_PARTS.has(localPart)) {
+      e.email = 'Please provide a legitimate contact email address.';
+    }
+  }
+
   if (!f.subject.trim()) e.subject = 'Subject is required.';
+  else if (f.subject.trim().length < 3) e.subject = 'Subject must be at least 3 characters.';
+
   if (!f.message.trim()) e.message = 'Message is required.';
-  else if (f.message.length < 20) e.message = 'At least 20 characters.';
+  else if (f.message.trim().length < 20) e.message = 'Message must be at least 20 characters.';
+
   return e;
 }
 

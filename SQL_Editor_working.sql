@@ -235,6 +235,33 @@ on messages for delete
 to authenticated
 using (true);
 
+-- Clean up any previous dummy test rows if present
+delete from messages where 
+  email ilike '%@example.%' or 
+  email ilike '%@test.%' or 
+  email ilike '%@invalid.%' or 
+  email ilike '%@mailinator.%' or 
+  email ilike '%@tempmail.%';
+
+-- Database-level check constraints (Enforces validation on all new submissions)
+alter table messages drop constraint if exists messages_valid_email;
+alter table messages add constraint messages_valid_email 
+  check (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$') not valid;
+
+alter table messages drop constraint if exists messages_blocked_dummy_domains;
+alter table messages add constraint messages_blocked_dummy_domains
+  check (
+    email not ilike '%@example.%' and
+    email not ilike '%@test.%' and
+    email not ilike '%@invalid.%' and
+    email not ilike '%@mailinator.%' and
+    email not ilike '%@tempmail.%'
+  ) not valid;
+
+alter table messages drop constraint if exists messages_content_min_length;
+alter table messages add constraint messages_content_min_length
+  check (length(trim(message)) >= 20 and length(trim(name)) >= 2) not valid;
+
 
 -- RESUME
 create table if not exists resume (

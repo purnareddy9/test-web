@@ -187,10 +187,58 @@ export async function markAllMessagesRead(): Promise<void> {
   window.dispatchEvent(new CustomEvent('messages_updated', { detail: { unreadCount: 0 } }));
 }
 
+const BLOCKED_DOMAINS = new Set([
+  'example.com', 'example.org', 'example.net', 'test.com', 'sample.com',
+  'invalid.com', 'fake.com', 'domain.com', 'tempmail.com', 'mailinator.com',
+  '10minutemail.com', 'guerrillamail.com', 'throwawaymail.com', 'trashmail.com',
+  'yopmail.com', 'sharklasers.com', 'dispostable.com', 'getairmail.com',
+  'maildrop.cc', 'mailcatch.com', 'nada.ltd',
+]);
+
+const BLOCKED_LOCAL_PARTS = new Set([
+  'test', 'fake', 'asdf', 'qwerty', '123456', 'admin', 'noreply', 'no-reply', 'null', 'undefined',
+]);
+
+export function validateContactPayload(form: { name?: string; email?: string; subject?: string; message?: string }): string | null {
+  const name = form.name?.trim() || '';
+  const email = form.email?.trim().toLowerCase() || '';
+  const subject = form.subject?.trim() || '';
+  const message = form.message?.trim() || '';
+
+  if (name.length < 2) return 'Please provide your full name.';
+  if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) return 'Invalid email address.';
+
+  const [localPart, domain] = email.split('@');
+  if (!domain || BLOCKED_DOMAINS.has(domain) || domain.endsWith('.test') || domain.endsWith('.example') || domain.endsWith('.invalid')) {
+    return 'Disposable or placeholder email domains are not permitted.';
+  }
+  if (BLOCKED_LOCAL_PARTS.has(localPart)) {
+    return 'Please provide a legitimate personal or business email.';
+  }
+
+  if (subject.length < 3) return 'Subject must be at least 3 characters.';
+  if (message.length < 20) return 'Message must be at least 20 characters.';
+
+  return null;
+}
+
 export async function submitContact(form: { name: string; email: string; subject: string; message: string }): Promise<{ success: boolean; error?: string }> {
+  // 1. Backend payload validation (Prevents DevTools inspect / bypass)
+  const validationError = validateContactPayload(form);
+  if (validationError) {
+    return { success: false, error: validationError };
+  }
+
+  const cleanForm = {
+    name: form.name.trim(),
+    email: form.email.trim().toLowerCase(),
+    subject: form.subject.trim(),
+    message: form.message.trim(),
+  };
+
   const newMsg: Message = {
     id: 'msg_' + Math.random().toString(36).substring(2, 9),
-    ...form,
+    ...cleanForm,
     status: 'new',
     created_at: new Date().toISOString(),
   };
@@ -202,7 +250,7 @@ export async function submitContact(form: { name: string; email: string; subject
     localStorage.setItem('local_demo_messages', JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg, unreadCount: updated.filter(m => m.status === 'new').length } }));
   } else {
-    const { error } = await supabase.from('messages').insert([{ ...form, status: 'new' }]);
+    const { error } = await supabase.from('messages').insert([{ ...cleanForm, status: 'new' }]);
     if (error) return { success: false, error: error.message };
     window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg, unreadCount: 1 } }));
   }
