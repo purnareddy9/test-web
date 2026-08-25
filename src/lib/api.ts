@@ -204,10 +204,10 @@ export async function submitContact(form: { name: string; email: string; subject
     return { success: true };
   }
 
-  const { data, error } = await supabase.from('messages').insert([{ ...form, status: 'new' }]).select().single();
+  const { error } = await supabase.from('messages').insert([{ ...form, status: 'new' }]);
   if (error) return { success: false, error: error.message };
 
-  window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg: data || newMsg, unreadCount: 1 } }));
+  window.dispatchEvent(new CustomEvent('messages_updated', { detail: { newMsg, unreadCount: 1 } }));
 
   // Email Notification Trigger
   try {

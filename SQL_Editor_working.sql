@@ -210,21 +210,30 @@ create table if not exists messages (
 
 alter table messages enable row level security;
 
+drop policy if exists "messages_public_insert" on messages;
+drop policy if exists "messages_auth_read" on messages;
+drop policy if exists "messages_auth_update" on messages;
+drop policy if exists "messages_auth_delete" on messages;
+
 create policy "messages_public_insert"
 on messages for insert
+to anon, authenticated
 with check (true);
 
 create policy "messages_auth_read"
 on messages for select
-using (auth.role() = 'authenticated');
+to authenticated
+using (true);
 
 create policy "messages_auth_update"
 on messages for update
-using (auth.role() = 'authenticated');
+to authenticated
+using (true);
 
 create policy "messages_auth_delete"
 on messages for delete
-using (auth.role() = 'authenticated');
+to authenticated
+using (true);
 
 
 -- RESUME

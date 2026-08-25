@@ -152,10 +152,15 @@ create table if not exists messages (
   created_at timestamptz default now()
 );
 alter table messages enable row level security;
-create policy "messages_public_insert" on messages for insert with check (true);
-create policy "messages_auth_read"     on messages for select using (auth.role() = 'authenticated');
-create policy "messages_auth_update"   on messages for update using (auth.role() = 'authenticated');
-create policy "messages_auth_delete"   on messages for delete using (auth.role() = 'authenticated');
+drop policy if exists "messages_public_insert" on messages;
+drop policy if exists "messages_auth_read" on messages;
+drop policy if exists "messages_auth_update" on messages;
+drop policy if exists "messages_auth_delete" on messages;
+
+create policy "messages_public_insert" on messages for insert to anon, authenticated with check (true);
+create policy "messages_auth_read"     on messages for select to authenticated using (true);
+create policy "messages_auth_update"   on messages for update to authenticated using (true);
+create policy "messages_auth_delete"   on messages for delete to authenticated using (true);
 
 -- resume
 create table if not exists resume (
