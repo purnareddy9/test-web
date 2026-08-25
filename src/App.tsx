@@ -15,25 +15,27 @@ import Settings      from './pages/admin/Settings';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public */}
-        <Route path="/"                  element={<Home />} />
-        <Route path="/projects/:slug"    element={<ProjectDetails />} />
-        <Route path="/login"             element={<Login />} />
-        {/* Admin (protected via AdminLayout) */}
-        <Route path="/admin"             element={<AdminLayout />}>
-          <Route index                   element={<Dashboard />} />
-          <Route path="profile"          element={<Profile />} />
-          <Route path="projects"         element={<Projects />} />
-          <Route path="skills"           element={<Skills />} />
-          <Route path="experience"       element={<Experience />} />
-          <Route path="certifications"   element={<Certifications />} />
-          <Route path="messages"         element={<Messages />} />
-          <Route path="resume"           element={<Resume />} />
-          <Route path="settings"         element={<Settings />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <div className="min-h-screen bg-[#0a0a0a] text-[#e5e7eb] w-full selection:bg-cyan-500/20">
+      <BrowserRouter>
+        <Routes>
+          {/* Public */}
+          <Route path="/"                  element={<Home />} />
+          <Route path="/projects/:slug"    element={<ProjectDetails />} />
+          <Route path="/login"             element={<Login />} />
+          {/* Admin (protected via AdminLayout) */}
+          <Route path="/admin"             element={<AdminLayout />}>
+            <Route index                   element={<Dashboard />} />
+            <Route path="profile"          element={<Profile />} />
+            <Route path="projects"         element={<Projects />} />
+            <Route path="skills"           element={<Skills />} />
+            <Route path="experience"       element={<Experience />} />
+            <Route path="certifications"   element={<Certifications />} />
+            <Route path="messages"         element={<Messages />} />
+            <Route path="resume"           element={<Resume />} />
+            <Route path="settings"         element={<Settings />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </div>
   );
 }

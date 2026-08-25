@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" style="background-color: #0a0a0a; color: #e5e7eb;">
+<html lang="en" style="background-color: #0a0a0a !important; background: #0a0a0a !important; color: #e5e7eb; margin: 0 !important; padding: 0 !important; width: 100% !important; min-height: 100vh !important;">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -14,12 +14,55 @@
     <meta name="twitter:title" content="%VITE_SITE_TITLE%" />
     <meta name="twitter:description" content="Cloud infrastructure, Kubernetes, CI/CD, Terraform." />
     <style>
-      html, body, #root {
+      :root {
+        color-scheme: dark !important;
         background-color: #0a0a0a !important;
+        background: #0a0a0a !important;
         color: #e5e7eb;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box;
         margin: 0;
         padding: 0;
-        min-height: 100vh;
+        border: 0;
+      }
+      html {
+        color-scheme: dark !important;
+        background-color: #0a0a0a !important;
+        background: #0a0a0a !important;
+        color: #e5e7eb;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 100% !important;
+        overflow-x: hidden;
+      }
+      body {
+        color-scheme: dark !important;
+        background-color: #0a0a0a !important;
+        background: #0a0a0a !important;
+        color: #e5e7eb;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 100vh !important;
+        overflow-x: hidden;
+      }
+      #root {
+        color-scheme: dark !important;
+        background-color: #0a0a0a !important;
+        background: #0a0a0a !important;
+        color: #e5e7eb;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        min-height: 100vh !important;
+        display: flex;
+        flex-direction: column;
       }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -27,8 +70,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <title>%VITE_SITE_TITLE%</title>
   </head>
-  <body style="background-color: #0a0a0a; color: #e5e7eb; margin: 0;">
-    <div id="root" style="background-color: #0a0a0a; min-height: 100vh;"></div>
+  <body style="background-color: #0a0a0a !important; background: #0a0a0a !important; color: #e5e7eb; margin: 0 !important; padding: 0 !important; width: 100% !important; min-height: 100vh !important;">
+    <div id="root" style="background-color: #0a0a0a !important; background: #0a0a0a !important; min-height: 100vh !important; width: 100% !important;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

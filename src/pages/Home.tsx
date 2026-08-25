@@ -229,7 +229,10 @@ export default function Home() {
   };
 
   return (
-    <>
+    <div className="relative min-h-screen bg-[#0a0a0a] text-[#e5e7eb] w-full overflow-x-hidden">
+      {/* Edge-to-edge permanent dark background layer — prevents white background under any transform/animation */}
+      <div className="fixed inset-0 bg-[#0a0a0a] pointer-events-none -z-50" aria-hidden="true" />
+
       <AnimatePresence>
         {showInitialLoader && (
           <motion.div
@@ -254,17 +257,17 @@ export default function Home() {
 
       <Navbar resumeUrl={resume?.file_url} name={profile?.name} />
 
-      <main>
+      <main className="w-full">
         {sections
           .filter(s => s.enabled)
           .map(s => (
-            <div key={s.id} id={s.id}>
+            <div key={s.id} id={s.id} className="w-full">
               {sectionComponentMap[s.id]}
             </div>
           ))}
       </main>
 
       <Footer profile={profile} />
-    </>
+    </div>
   );
 }
