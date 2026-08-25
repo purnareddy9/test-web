@@ -229,9 +229,45 @@ export default function Home() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a0a] text-[#e5e7eb] w-full overflow-x-hidden">
-      {/* Edge-to-edge permanent dark background layer — prevents white background under any transform/animation */}
-      <div className="fixed inset-0 bg-[#0a0a0a] pointer-events-none -z-50" aria-hidden="true" />
+    <div className="min-h-screen bg-[#08090a] text-[#e5e7eb] w-full overflow-x-hidden relative">
+      {/* Fixed full-viewport background glow & grid layer */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+        {/* Base dark canvas */}
+        <div className="absolute inset-0 bg-[#08090a]" />
+
+        {/* Upper-right atmospheric cyan/teal glow (clearly visible, ~35% intensity) */}
+        <div
+          className="absolute -top-32 -right-32 w-[800px] h-[800px] rounded-full blur-[110px] pointer-events-none opacity-85"
+          style={{
+            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.28) 0%, rgba(20, 184, 166, 0.18) 45%, transparent 70%)',
+          }}
+        />
+
+        {/* Lower-left atmospheric deep blue glow (clearly visible, ~35% intensity) */}
+        <div
+          className="absolute -bottom-32 -left-32 w-[850px] h-[850px] rounded-full blur-[120px] pointer-events-none opacity-85"
+          style={{
+            background: 'radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(29, 78, 216, 0.16) 50%, transparent 70%)',
+          }}
+        />
+
+        {/* Center-right subtle cyan diffusion */}
+        <div
+          className="absolute top-1/2 -right-40 w-[650px] h-[650px] rounded-full blur-[130px] pointer-events-none opacity-60"
+          style={{
+            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 65%)',
+          }}
+        />
+
+        {/* Crisp grid pattern clearly visible over the gradient */}
+        <div
+          className="absolute inset-0 opacity-[0.035]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
+      </div>
 
       <AnimatePresence>
         {showInitialLoader && (
@@ -239,7 +275,7 @@ export default function Home() {
             key="initial-loader"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.55, ease: 'easeInOut' } }}
-            className="fixed inset-0 z-[100] bg-[#0a0a0a] flex flex-col items-center justify-center pointer-events-none"
+            className="fixed inset-0 z-[100] bg-[#08090a] flex flex-col items-center justify-center pointer-events-none"
           >
             <div className="relative mb-6">
               <div className="w-12 h-12 rounded-full border-2 border-cyan-400/20 border-t-cyan-400 animate-spin" />
@@ -255,19 +291,21 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      <Navbar resumeUrl={resume?.file_url} name={profile?.name} />
+      <div className="relative z-10">
+        <Navbar resumeUrl={resume?.file_url} name={profile?.name} />
 
-      <main className="w-full">
-        {sections
-          .filter(s => s.enabled)
-          .map(s => (
-            <div key={s.id} id={s.id} className="w-full">
-              {sectionComponentMap[s.id]}
-            </div>
-          ))}
-      </main>
+        <main className="w-full">
+          {sections
+            .filter(s => s.enabled)
+            .map(s => (
+              <div key={s.id} id={s.id} className="w-full">
+                {sectionComponentMap[s.id]}
+              </div>
+            ))}
+        </main>
 
-      <Footer profile={profile} />
+        <Footer profile={profile} />
+      </div>
     </div>
   );
 }
