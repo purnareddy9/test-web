@@ -361,6 +361,7 @@ export async function revokeAllSessions(): Promise<void> {
 export interface NotificationSettings {
   emailNotificationsEnabled: boolean;
   adminNotificationEmail: string;
+  emailApiKey?: string;
 }
 
 export const NOTIFICATION_STORAGE_KEY = 'portfolio_notification_settings';
@@ -373,12 +374,14 @@ export function getNotificationSettings(): NotificationSettings {
       return {
         emailNotificationsEnabled: parsed.emailNotificationsEnabled !== false,
         adminNotificationEmail: parsed.adminNotificationEmail || '',
+        emailApiKey: parsed.emailApiKey || '',
       };
     }
   } catch {}
   return {
     emailNotificationsEnabled: true,
     adminNotificationEmail: '',
+    emailApiKey: '',
   };
 }
 
@@ -404,35 +407,147 @@ export async function saveNotificationSettings(settings: NotificationSettings): 
   }
 }
 
-export async function sendTestNotificationEmail(targetEmail: string): Promise<{ success: boolean; message: string }> {
-  try {
-    if (supabaseConfigured) {
-      const { error } = await supabase.functions.invoke('send-contact-email', {
+export async function sendRealEmailNotification(params: {
+  recipient?: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  isTest?: boolean;
+}): Promise<{ success: boolean; message: string }> {
+  const notifSettings = getNotificationSettings();
+  const targetEmail = params.recipient || notifSettings.adminNotificationEmail;
+
+  if (!targetEmail) {
+    return { success: false, message: 'Please specify an Admin Notification Email first.' };
+  }
+
+  // 1. Direct Resend API (If key starts with 're_')
+  if (notifSettings.emailApiKey && notifSettings.emailApiKey.trim().startsWith('re_')) {
+    const key = notifSettings.emailApiKey.trim();
+    try {
+      const subjectLine = params.isTest
+        ? `[Test Alert] DevOps Portfolio Notification System`
+        : `[Portfolio Lead] ${params.subject || 'New Contact Message'}`;
+
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          from: 'Portfolio Alert <onboarding@resend.dev>',
+          to: [targetEmail],
+          subject: subjectLine,
+          html: `
+            <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; rounded: 10px;">
+              <h2 style="color: #06b6d4; margin-top: 0;">${subjectLine}</h2>
+              <p><strong>Visitor Name:</strong> ${params.name}</p>
+              <p><strong>Visitor Email:</strong> <a href="mailto:${params.email}">${params.email}</a></p>
+              <p><strong>Subject:</strong> ${params.subject}</p>
+              <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin: 0; white-space: pre-wrap;">${params.message}</p>
+              </div>
+              <p style="color: #64748b; font-size: 12px;">Sent via DevOps Portfolio Contact Form &bull; ${new Date().toLocaleString()}</p>
+            </div>
+          `,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.id) {
+        return {
+          success: true,
+          message: `Email successfully delivered to ${targetEmail} via Resend!`,
+        };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Resend API error. Please verify your API key.',
+        };
+      }
+    } catch (e: any) {
+      console.warn('Resend dispatch error:', e);
+      return { success: false, message: e.message || 'Network error connecting to Resend.' };
+    }
+  }
+
+  // 2. Direct Web3Forms API (Standard UUID Access Key)
+  if (notifSettings.emailApiKey && notifSettings.emailApiKey.trim().length > 5) {
+    const key = notifSettings.emailApiKey.trim();
+    try {
+      const payload = {
+        access_key: key,
+        subject: params.isTest
+          ? `[Test Alert] DevOps Portfolio Notification System`
+          : `[Portfolio Lead] ${params.subject || 'New Contact Message'}`,
+        from_name: `${params.name} (Portfolio Visitor)`,
+        name: params.name,
+        email: params.email,
+        message: `Visitor Name: ${params.name}\nVisitor Email: ${params.email}\nSubject: ${params.subject}\n\nMessage:\n${params.message}\n\nSent: ${new Date().toLocaleString()}`,
+      };
+
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return {
+          success: true,
+          message: `Email successfully delivered to ${targetEmail} via Web3Forms!`,
+        };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Web3Forms error. Please verify your Access Key.',
+        };
+      }
+    } catch (e: any) {
+      console.warn('Web3Forms dispatch error:', e);
+      return { success: false, message: e.message || 'Network error delivering email.' };
+    }
+  }
+
+  // 3. Fallback to Supabase Edge Function (send-contact-email)
+  if (supabaseConfigured) {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-contact-email', {
         body: {
-          test: true,
+          test: params.isTest,
           recipient: targetEmail,
-          name: 'Portfolio System',
-          email: 'system@portfolio.internal',
-          subject: 'Test Notification from DevOps Portfolio',
-          message: 'This is a test notification to verify that your portfolio contact email alerts are configured properly.',
+          name: params.name,
+          email: params.email,
+          subject: params.subject,
+          message: params.message,
           timestamp: new Date().toISOString(),
         },
       });
-      if (error) {
-        console.warn('Edge function not deployed yet, confirming local test trigger:', error);
+      if (!error && data?.success) {
+        return { success: true, message: `Email delivered to ${targetEmail} via Supabase Edge Function!` };
       }
+    } catch (e) {
+      console.warn('Edge function not configured:', e);
     }
-    // Simulate natural network delay
-    await new Promise(r => setTimeout(r, 600));
-    return {
-      success: true,
-      message: `Test email notification dispatched to ${targetEmail}.`,
-    };
-  } catch (err) {
-    return {
-      success: false,
-      message: err instanceof Error ? err.message : 'Failed to send test email.',
-    };
   }
+
+  return {
+    success: false,
+    message: 'To receive real emails in Gmail, please enter a free Web3Forms Access Key below.',
+  };
+}
+
+export async function sendTestNotificationEmail(targetEmail: string): Promise<{ success: boolean; message: string }> {
+  return sendRealEmailNotification({
+    recipient: targetEmail,
+    name: 'Admin Tester',
+    email: 'admin@portfolio.internal',
+    subject: 'DevOps Portfolio Test Notification',
+    message: 'Hello! This is a test confirmation to verify that your portfolio contact alerts are working properly and delivering directly to your inbox.',
+    isTest: true,
+  });
 }
 

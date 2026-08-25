@@ -1,5 +1,5 @@
 import { supabase, supabaseConfigured } from './supabase';
-import { getNotificationSettings } from './settings';
+import { getNotificationSettings, sendRealEmailNotification } from './settings';
 import {
   fallbackProfile, fallbackProjects, fallbackSkills, fallbackExperience,
   fallbackEducation, fallbackCertifications, fallbackTestimonials,
@@ -213,15 +213,12 @@ export async function submitContact(form: { name: string; email: string; subject
   try {
     const notifSettings = getNotificationSettings();
     if (notifSettings.emailNotificationsEnabled && notifSettings.adminNotificationEmail) {
-      supabase.functions.invoke('send-contact-email', {
-        body: {
-          recipient: notifSettings.adminNotificationEmail,
-          name: form.name,
-          email: form.email,
-          subject: form.subject,
-          message: form.message,
-          timestamp: new Date().toISOString(),
-        },
+      sendRealEmailNotification({
+        recipient: notifSettings.adminNotificationEmail,
+        name: form.name,
+        email: form.email,
+        subject: form.subject,
+        message: form.message,
       }).catch(e => console.warn('Email dispatch notice:', e));
     }
   } catch (err) {

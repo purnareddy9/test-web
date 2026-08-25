@@ -127,6 +127,7 @@ export default function AdminSettings() {
   // ── Notifications State ──────────────────────────────────
   const [emailNotifsEnabled, setEmailNotifsEnabled] = useState<boolean>(() => getNotificationSettings().emailNotificationsEnabled);
   const [adminNotifEmail, setAdminNotifEmail] = useState<string>(() => getNotificationSettings().adminNotificationEmail);
+  const [emailApiKey, setEmailApiKey] = useState<string>(() => getNotificationSettings().emailApiKey || '');
   const [savingNotifs, setSavingNotifs] = useState(false);
   const [notifSavedBanner, setNotifSavedBanner] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
@@ -149,6 +150,7 @@ export default function AdminSettings() {
         const notifCfg = getNotificationSettings();
         setEmailNotifsEnabled(notifCfg.emailNotificationsEnabled);
         setAdminNotifEmail(notifCfg.adminNotificationEmail);
+        setEmailApiKey(notifCfg.emailApiKey || '');
       }
     });
 
@@ -158,6 +160,7 @@ export default function AdminSettings() {
       const notifCfg = getNotificationSettings();
       setEmailNotifsEnabled(notifCfg.emailNotificationsEnabled);
       setAdminNotifEmail(notifCfg.adminNotificationEmail);
+      setEmailApiKey(notifCfg.emailApiKey || '');
     };
     window.addEventListener('sections_config_updated', onUpdate);
     window.addEventListener('notification_settings_updated', onUpdate);
@@ -178,6 +181,7 @@ export default function AdminSettings() {
       await saveNotificationSettings({
         emailNotificationsEnabled: emailNotifsEnabled,
         adminNotificationEmail: adminNotifEmail.trim(),
+        emailApiKey: emailApiKey.trim(),
       });
       setNotifSavedBanner(true);
       setTimeout(() => setNotifSavedBanner(false), 2500);
@@ -1086,6 +1090,51 @@ export default function AdminSettings() {
                 </div>
                 <p className="text-[11px] text-white/40 mt-2">
                   Alerts containing visitor name, email, subject, message preview, and direct admin link will be sent here.
+                </p>
+              </div>
+
+              {/* Email Delivery Access Key */}
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <label htmlFor="emailApiKey" className="block text-xs font-mono text-white/50 uppercase tracking-wider">
+                    Email Delivery API Key (Resend / Web3Forms)
+                  </label>
+                  <div className="flex items-center gap-3 text-[11px] font-mono">
+                    <a
+                      href="https://resend.com/api-keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>Resend Key</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <span className="text-white/20">•</span>
+                    <a
+                      href="https://web3forms.com/#start"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>Web3Forms Key</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+                <div className="relative">
+                  <input
+                    id="emailApiKey"
+                    type="password"
+                    value={emailApiKey}
+                    onChange={e => setEmailApiKey(e.target.value)}
+                    placeholder="e.g. re_123456... or Web3Forms Access Key"
+                    className="form-input pl-10 font-mono text-xs"
+                    disabled={!emailNotifsEnabled}
+                  />
+                  <KeyRound className="w-4 h-4 text-white/30 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+                <p className="text-[11px] text-white/40 mt-2">
+                  Paste your <strong>Resend API Key</strong> (starts with <code className="text-cyan-300">re_</code>) or <strong>Web3Forms Access Key</strong> to deliver alerts directly to your Gmail inbox.
                 </p>
               </div>
 
