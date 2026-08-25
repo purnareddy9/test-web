@@ -34,7 +34,7 @@ function ExperienceItem({ item, index }: { item: Experience; index: number }) {
               </span>
             )}
           </div>
-          <div className="flex flex-col items-end gap-1 text-xs text-white/30">
+          <div className="flex sm:flex-col items-start sm:items-end gap-1.5 sm:gap-1 text-xs text-white/30 flex-wrap">
             <span className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
               {getDateRange(item.start_date, item.end_date, item.current)}

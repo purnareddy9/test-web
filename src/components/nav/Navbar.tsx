@@ -128,7 +128,7 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
               <Download className="w-3.5 h-3.5" /> Resume
             </span>
           )}
-          <button onClick={() => setOpen(o => !o)} className="lg:hidden p-2 text-white/60 hover:text-white transition-colors" aria-label="Toggle menu" aria-expanded={open}>
+          <button onClick={() => setOpen(o => !o)} className="lg:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/60 hover:text-white transition-colors" aria-label="Toggle menu" aria-expanded={open}>
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
@@ -139,20 +139,20 @@ export default function Navbar({ resumeUrl, name }: { resumeUrl?: string; name?:
         {open && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
-            className="lg:hidden bg-[#0a0a0a]/98 backdrop-blur-sm border-b border-white/[0.06] px-6 pb-5">
+            className="lg:hidden bg-[#08090a]/98 backdrop-blur-md border-b border-white/[0.08] px-6 pb-5 shadow-2xl shadow-black/80">
             <ul className="flex flex-col gap-1 pt-3" role="list">
               {navLinks.map(({ href, label }) => (
                 <li key={href}>
                   <button onClick={() => handleNav(href)}
-                    className="w-full text-left px-3 py-2.5 text-sm text-white/60 hover:text-white transition-colors rounded-md hover:bg-white/[0.04]">
+                    className="w-full text-left px-3 py-3 min-h-[44px] flex items-center text-sm font-medium text-white/70 hover:text-white hover:text-cyan-400 transition-colors rounded-md hover:bg-white/[0.04]">
                     {label}
                   </button>
                 </li>
               ))}
               {resumeUrl && (
-                <li className="mt-2">
+                <li className="mt-2 pt-2 border-t border-white/[0.06]">
                   <a href={resumeUrl} download target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-cyan-400">
+                    className="flex items-center gap-2 px-3 py-3 min-h-[44px] text-sm font-medium text-cyan-400 hover:text-cyan-300">
                     <Download className="w-4 h-4" /> Download Resume
                   </a>
                 </li>

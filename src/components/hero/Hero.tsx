@@ -100,38 +100,38 @@ function Terminal() {
   }, [visibleCount]);
 
   return (
-    <div className="terminal w-full max-w-lg min-h-[380px] flex flex-col">
+    <div className="terminal w-full max-w-full lg:max-w-lg flex flex-col">
       {/* Header bar */}
       <div className="terminal-header flex-shrink-0">
         <span className="terminal-dot bg-red-500/70" />
         <span className="terminal-dot bg-yellow-500/70" />
         <span className="terminal-dot bg-green-500/70" />
-        <span className="ml-3 text-white/25 text-xs flex-1 text-center">~/infrastructure</span>
+        <span className="ml-3 text-white/25 text-xs flex-1 text-center truncate">~/infrastructure</span>
         {!running && (
-          <button onClick={run} className="ml-auto text-white/30 hover:text-cyan-400 transition-colors" aria-label="Replay terminal">
+          <button onClick={run} className="ml-auto text-white/30 hover:text-cyan-400 transition-colors p-1" aria-label="Replay terminal">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
-      {/* Fixed height body — scrolls internally, never moves the page */}
-      <div ref={bodyRef} className="p-4 text-xs leading-relaxed overflow-y-auto space-y-0.5 flex-1" style={{ height: 320, minHeight: 320 }}>
+      {/* Responsive height body — scrolls internally, never moves the page */}
+      <div ref={bodyRef} className="p-3.5 sm:p-4 text-xs leading-relaxed overflow-y-auto space-y-0.5 flex-1 min-h-[220px] sm:min-h-[280px] lg:min-h-[320px] max-h-[320px]">
         {TERMINAL_LINES.slice(0, visibleCount).map((line, i) => (
           <div key={i}>
             {line.type === 'cmd' && (
-              <div className="flex items-start gap-2">
-                <span className="text-cyan-400 select-none">$</span>
+              <div className="flex items-start gap-2 break-all sm:break-normal">
+                <span className="text-cyan-400 select-none flex-shrink-0">$</span>
                 <span className="text-white/80">{line.text}</span>
               </div>
             )}
             {line.type === 'output' && (
-              <div className={`pl-4 ${line.text?.startsWith('✓') ? 'text-green-400' : 'text-white/40'}`}>
+              <div className={`pl-4 break-all sm:break-normal ${line.text?.startsWith('✓') ? 'text-green-400' : 'text-white/40'}`}>
                 {line.text}
               </div>
             )}
             {line.type === 'prompt' && (
               <div className="flex items-center gap-2">
-                <span className="text-cyan-400">$</span>
+                <span className="text-cyan-400 select-none">$</span>
                 <span className="inline-block w-2 h-3.5 bg-cyan-400/80 animate-cursor-blink" />
               </div>
             )}
@@ -155,33 +155,33 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
   const goAbout    = () => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <section id="hero" className="relative min-h-[calc(100vh-4rem)] flex flex-col justify-center pt-16 pb-10 scroll-mt-20" aria-label="Introduction">
+    <section id="hero" className="relative min-h-[calc(100vh-4rem)] flex flex-col justify-center pt-16 pb-10 scroll-mt-20 overflow-hidden" aria-label="Introduction">
       {/* Subtle grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.02]"
         style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '60px 60px' }}
         aria-hidden="true" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 pt-8 pb-10 lg:pt-10 lg:pb-12 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6 pt-6 pb-8 sm:pt-8 sm:pb-10 lg:pt-10 lg:pb-12 w-full">
+        <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 items-center">
           {/* Left — text */}
-          <div>
+          <div className="w-full">
             <FadeUp immediate delay={0.05}>
-              <p className="text-white/35 text-sm font-mono mb-4">
+              <p className="text-white/35 text-xs sm:text-sm font-mono mb-3 sm:mb-4">
                 <span className="text-cyan-400">~/</span> hello, world
               </p>
             </FadeUp>
 
             <FadeUp immediate delay={0.12}>
-              <p className="text-white/50 text-base mb-1">Hi, I'm</p>
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-bold text-white mb-4 leading-[1.08]">
+              <p className="text-white/50 text-sm sm:text-base mb-1">Hi, I'm</p>
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-display font-bold text-white mb-3 sm:mb-4 leading-[1.08] tracking-tight">
                 {profile.name.split(' ')[0]}<span className="text-cyan-400">.</span>
               </h1>
             </FadeUp>
 
             <FadeUp immediate delay={0.2}>
-              <div className="h-8 flex items-center gap-2 mb-5" aria-live="polite" aria-label={`Current role: ${typed}`}>
+              <div className="min-h-8 flex flex-wrap items-center gap-2 mb-4 sm:mb-5" aria-live="polite" aria-label={`Current role: ${typed}`}>
                 <span className="text-white/30 font-mono text-sm select-none">{'>'}</span>
-                <span className="text-lg font-mono text-white/75">
+                <span className="text-base sm:text-lg font-mono text-white/75 break-words">
                   {typed}<span className="animate-cursor-blink text-cyan-400 ml-0.5">█</span>
                 </span>
               </div>
@@ -189,23 +189,23 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
 
             {profile.bio && (
               <FadeUp immediate delay={0.28}>
-                <p className="text-white/45 text-base leading-relaxed mb-7 max-w-md">
+                <p className="text-white/45 text-sm sm:text-base leading-relaxed mb-6 sm:mb-7 max-w-xl w-full">
                   {profile.bio.split('\n').map(s => s.trim()).filter(Boolean)[0]}
                 </p>
               </FadeUp>
             )}
 
             <FadeUp immediate delay={0.35}>
-              <div className="flex flex-wrap gap-3 mb-8">
-                <button onClick={goProjects} className="btn-primary">
+              <div className="flex flex-wrap sm:flex-nowrap gap-3 mb-6 sm:mb-8 w-full">
+                <button onClick={goProjects} className="btn-primary min-h-[44px] justify-center text-sm py-2.5 px-5 flex-1 sm:flex-initial">
                   <ExternalLink className="w-4 h-4" /> View Projects
                 </button>
                 {resume ? (
-                  <a href={resume.file_url} download target="_blank" rel="noopener noreferrer" className="btn-outline">
+                  <a href={resume.file_url} download target="_blank" rel="noopener noreferrer" className="btn-outline min-h-[44px] justify-center text-sm py-2.5 px-5 flex-1 sm:flex-initial">
                     <Download className="w-4 h-4" /> Download Resume
                   </a>
                 ) : (
-                  <button onClick={goAbout} className="btn-outline">
+                  <button onClick={goAbout} className="btn-outline min-h-[44px] justify-center text-sm py-2.5 px-5 flex-1 sm:flex-initial">
                     About Me
                   </button>
                 )}
@@ -213,7 +213,7 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
             </FadeUp>
 
             <FadeUp immediate delay={0.42}>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {[
                   { icon: GitFork, label: 'GitHub',   href: profile.github_url },
                   { icon: Link2,   label: 'LinkedIn', href: profile.linkedin_url },
@@ -222,7 +222,7 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
                   <a key={label} href={href!}
                     target={href!.startsWith('http') ? '_blank' : undefined}
                     rel={href!.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    className="p-2.5 text-white/35 hover:text-white transition-colors rounded-lg hover:bg-white/[0.05]"
+                    className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/35 hover:text-white transition-colors rounded-lg hover:bg-white/[0.05]"
                     aria-label={label}>
                     <Icon className="w-4 h-4" />
                   </a>
@@ -232,7 +232,7 @@ export default function Hero({ profile, resume }: { profile: Profile; resume: Re
           </div>
 
           {/* Right — terminal */}
-          <FadeUp immediate delay={0.3} className="flex justify-center lg:justify-end">
+          <FadeUp immediate delay={0.3} className="w-full flex justify-center lg:justify-end mt-4 lg:mt-0">
             <Terminal />
           </FadeUp>
         </div>
