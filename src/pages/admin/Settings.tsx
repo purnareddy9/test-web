@@ -128,6 +128,7 @@ export default function AdminSettings() {
   const [emailNotifsEnabled, setEmailNotifsEnabled] = useState<boolean>(() => getNotificationSettings().emailNotificationsEnabled);
   const [adminNotifEmail, setAdminNotifEmail] = useState<string>(() => getNotificationSettings().adminNotificationEmail);
   const [emailApiKey, setEmailApiKey] = useState<string>(() => getNotificationSettings().emailApiKey || '');
+  const [showEmailApiKey, setShowEmailApiKey] = useState(false);
   const [savingNotifs, setSavingNotifs] = useState(false);
   const [notifSavedBanner, setNotifSavedBanner] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
@@ -1124,14 +1125,23 @@ export default function AdminSettings() {
                 <div className="relative">
                   <input
                     id="emailApiKey"
-                    type="password"
+                    type={showEmailApiKey ? 'text' : 'password'}
                     value={emailApiKey}
                     onChange={e => setEmailApiKey(e.target.value)}
                     placeholder="e.g. re_123456... or Web3Forms Access Key"
-                    className="form-input pl-10 font-mono text-xs"
+                    className="form-input pl-10 pr-10 font-mono text-xs"
                     disabled={!emailNotifsEnabled}
                   />
                   <KeyRound className="w-4 h-4 text-white/30 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailApiKey(!showEmailApiKey)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors cursor-pointer"
+                    tabIndex={-1}
+                    title={showEmailApiKey ? 'Hide Key' : 'Show Key'}
+                  >
+                    {showEmailApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
                 <p className="text-[11px] text-white/40 mt-2">
                   Paste your <strong>Resend API Key</strong> (starts with <code className="text-cyan-300">re_</code>) or <strong>Web3Forms Access Key</strong> to deliver alerts directly to your Gmail inbox.
