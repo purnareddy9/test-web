@@ -155,8 +155,11 @@ export const TIMEOUT_OPTIONS = [
   { label: '5 Minutes', value: 5 },
   { label: '10 Minutes', value: 10 },
   { label: '15 Minutes', value: 15 },
-  { label: '30 Minutes', value: 30 },
+  { label: '30 Minutes (Recommended)', value: 30 },
   { label: '1 Hour', value: 60 },
+  { label: '2 Hours', value: 120 },
+  { label: '4 Hours', value: 240 },
+  { label: '8 Hours', value: 480 },
 ];
 
 export function getSectionSettings(): DashboardSectionConfig[] {
@@ -257,7 +260,9 @@ export async function resetSectionSettings(): Promise<DashboardSectionConfig[]> 
 export function getSessionTimeoutMinutes(): number {
   try {
     const raw = localStorage.getItem(TIMEOUT_KEY);
-    return raw ? parseInt(raw, 10) : 30; // default 30 minutes
+    const val = raw ? parseInt(raw, 10) : 30;
+    const valid = TIMEOUT_OPTIONS.some(o => o.value === val);
+    return valid ? val : 30; // default to 30 if stale/invalid value
   } catch {
     return 30;
   }

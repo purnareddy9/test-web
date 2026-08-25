@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, User, FolderKanban, Wrench, Briefcase,
   Award, MessageSquare, FileText, Settings, LogOut, Menu, X, Terminal,
+  Clock, ShieldAlert,
 } from 'lucide-react';
 import { supabase, supabaseConfigured } from '../../lib/supabase';
 import { getSessionTimeoutMinutes } from '../../lib/settings';
@@ -25,6 +26,8 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null | 'loading'>('loading');
   const [sideOpen, setSideOpen] = useState(false);
+  const [warningSeconds, setWarningSeconds] = useState<number | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -123,21 +126,28 @@ export default function AdminLayout() {
     };
   }, [navigate]);
 
-  // ── Inactivity Timeout Watchdog ───────────────────────────
+  // ── Inactivity Timeout Watchdog with Countdown Warning ──
   useEffect(() => {
     if (!session || session === 'loading') return;
 
     let timeoutMinutes = getSessionTimeoutMinutes();
-    let lastActivity = Date.now();
+    lastActivityRef.current = Date.now();
+    let lastThrottle = 0;
 
     const updateActivity = () => {
-      lastActivity = Date.now();
+      const now = Date.now();
+      if (now - lastThrottle < 1000) return; // throttle activity events to 1s
+      lastThrottle = now;
+      lastActivityRef.current = now;
+      setWarningSeconds(null);
     };
 
     const onTimeoutSettingChange = (e: Event) => {
       const customEvent = e as CustomEvent<number>;
       if (typeof customEvent.detail === 'number') {
         timeoutMinutes = customEvent.detail;
+        lastActivityRef.current = Date.now();
+        setWarningSeconds(null);
       }
     };
 
@@ -147,11 +157,23 @@ export default function AdminLayout() {
 
     const interval = setInterval(() => {
       if (timeoutMinutes <= 0) return;
-      const elapsedMinutes = (Date.now() - lastActivity) / 60000;
-      if (elapsedMinutes >= timeoutMinutes) {
+      const totalTimeoutMs = timeoutMinutes * 60 * 1000;
+      const elapsedMs = Date.now() - lastActivityRef.current;
+      const remainingMs = totalTimeoutMs - elapsedMs;
+
+      // Warning appears 2 minutes (120s) before logout, or in final 20% for shorter sessions
+      // e.g. for 5m session -> warns at 60s. For 10m+ session -> warns at 120s (2m).
+      const warningWindowMs = Math.min(120000, Math.max(30000, Math.floor(totalTimeoutMs * 0.2)));
+
+      if (remainingMs <= 0) {
+        setWarningSeconds(null);
         handleLogout(true);
+      } else if (remainingMs <= warningWindowMs) {
+        setWarningSeconds(Math.ceil(remainingMs / 1000));
+      } else {
+        setWarningSeconds(null);
       }
-    }, 5000);
+    }, 1000);
 
     return () => {
       events.forEach(evt => window.removeEventListener(evt, updateActivity));
@@ -159,6 +181,11 @@ export default function AdminLayout() {
       clearInterval(interval);
     };
   }, [session]);
+
+  const extendSession = () => {
+    lastActivityRef.current = Date.now();
+    setWarningSeconds(null);
+  };
 
   async function handleLogout(timedOut = false) {
     localStorage.removeItem('local_demo_auth');
@@ -189,7 +216,63 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex">
+    <div className="min-h-screen bg-[#0a0a0a] flex relative">
+      {/* ── Session Inactivity Countdown Warning Modal ── */}
+      <AnimatePresence>
+        {warningSeconds !== null && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 8 }}
+              className="w-full max-w-md rounded-2xl bg-[#111622] border border-amber-500/30 p-6 sm:p-7 shadow-2xl text-center relative overflow-hidden"
+            >
+              {/* Top ambient glow */}
+              <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400">
+                <Clock className="w-6 h-6 animate-pulse" />
+              </div>
+
+              <h2 className="text-lg font-display font-bold text-white mb-1.5 flex items-center justify-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-400" />
+                Session Expiring Soon
+              </h2>
+
+              <p className="text-xs text-white/55 mb-5 leading-relaxed">
+                You have been inactive for a while. For your security, your admin session will expire in:
+              </p>
+
+              {/* Large Monospace Countdown (MM:SS) */}
+              <div className="mb-6 py-3 px-5 rounded-xl bg-black/50 border border-amber-500/20 inline-flex items-center justify-center gap-3 shadow-inner">
+                <span className="font-mono text-3xl sm:text-4xl font-bold text-amber-400 tracking-widest">
+                  {String(Math.floor(warningSeconds / 60)).padStart(2, '0')}:
+                  {String(warningSeconds % 60).padStart(2, '0')}
+                </span>
+                <span className="text-[11px] font-mono text-white/40 uppercase tracking-widest">min</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <button
+                  type="button"
+                  onClick={extendSession}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs tracking-wide transition-all shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
+                >
+                  Stay Logged In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLogout(false)}
+                  className="py-2.5 px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] text-white/70 hover:text-white border border-white/10 font-medium text-xs transition-colors"
+                >
+                  Sign Out Now
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Sidebar — desktop */}
       <aside className="hidden lg:flex flex-col w-56 border-r border-white/[0.06] bg-[#0d0d0d] flex-shrink-0">
         <div className="px-5 py-5 border-b border-white/[0.06] flex items-center gap-2">
@@ -209,30 +292,32 @@ export default function AdminLayout() {
           })}
         </nav>
         <div className="p-3 border-t border-white/[0.06]">
-          <button onClick={logout}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white/35 hover:text-red-400 hover:bg-red-400/[0.06] transition-colors w-full">
+          <button onClick={logout} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white/35 hover:text-red-400 w-full transition-colors">
             <LogOut className="w-4 h-4" /> Sign out
           </button>
         </div>
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Sidebar — mobile overlay */}
       <AnimatePresence>
         {sideOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSideOpen(false)} />
-            <motion.aside initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="fixed left-0 top-0 bottom-0 w-56 bg-[#0d0d0d] border-r border-white/[0.06] z-50 flex flex-col">
-              <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+              onClick={() => setSideOpen(false)}
+              className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
+            <motion.aside initial={{ x: -224 }} animate={{ x: 0 }} exit={{ x: -224 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="lg:hidden fixed top-0 bottom-0 left-0 z-50 w-56 bg-[#0d0d0d] border-r border-white/[0.06] flex flex-col">
+              <div className="px-5 py-5 border-b border-white/[0.06] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-cyan-400" />
                   <span className="font-display font-semibold text-white text-sm">Admin</span>
                 </div>
-                <button onClick={() => setSideOpen(false)} className="text-white/35 hover:text-white"><X className="w-4 h-4" /></button>
+                <button onClick={() => setSideOpen(false)} className="text-white/45 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <nav className="flex-1 p-3 space-y-0.5">
+              <nav className="flex-1 p-3 space-y-0.5" aria-label="Mobile admin navigation">
                 {NAV.map(({ href, icon: Icon, label }) => {
                   const active = pathname === href;
                   return (
